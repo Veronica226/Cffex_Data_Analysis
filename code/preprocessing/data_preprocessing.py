@@ -6,7 +6,11 @@ import pandas as pd
 import numpy as np
 import os, sys, json, csv, re
 
+#日期转换
+def trans_date(date_str):
+    return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:8] + ' ' + date_str[8:] + ':00:00'
 
+#数据预处理
 def data_preprocessing_process(origin_dir, output_dir, host_alarm_dir):
     f_list = os.listdir(origin_dir)
     for i in f_list:  ##每个log文件
@@ -133,5 +137,99 @@ def data_preprocessing_process(origin_dir, output_dir, host_alarm_dir):
     data_processed.to_csv(host_alarm_processed_dir, index = 0, encoding = 'GBK')
 
 #END 'cffex-host-alarm.csv' process code
+
+
+def generate_plot_data(origin_dir, output_dir):
+    f_list = os.listdir(origin_dir)
+    for i in f_list:
+        file_name = os.path.splitext(i)[0]
+        file_name_list = file_name.split('_')
+
+        with open(origin_dir + "/" + i, "r") as fp1:
+            if file_name.endswith("disk"):           #磁盘文件中diskname字段有不同的磁盘名
+                data = pd.read_csv(fp1, usecols=[0, 3, 6, 8], dtype=str)
+                for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
+                    # print (diskname)
+                    # print (group)
+                    output_file = os.path.join(output_dir, file_name_list[1] + '_' + file_name_list[3] + '_' + diskname[1:].replace('/', '-') + '.csv')
+                    #del group['diskname']
+                    group.drop(['diskname'],axis=1, inplace=True)
+                    group['archour'] = group['archour'].apply(trans_date)
+                    group.to_csv(output_file, sep=',', index=False, header=False)
+
+            elif file_name.endswith("disk")==False:
+                output_file = os.path.join(output_dir,file_name_list[1]+'_'+file_name_list[3]+'.csv') #主机名 部件名
+                data = pd.read_csv(fp1,usecols=[0,5,7], dtype=str)  #时间 最大值 最小值
+                data['archour'] = data['archour'].apply(trans_date)
+                data.to_csv(output_file, sep=',', index=False, header=False)
+
+def linear_insert(origin_dir, output_dir):
+    with open("","r") as fp:
+        data = fp.read()
+        lines = data.split('\n')
+        lines.insert(5,"new line")
+        data = '\n'.join(lines)
+        with open("","w") as fp:
+            fp.write(data)
+
+def insert_missing_data(origin_dir):
+     f_list = os.listdir(origin_dir)
+     for file_name in f_list:
+        f_name = os.path.splitext(file_name)[0]
+        if f_name.endswith("cpu") or f_name.endswith("mem"):
+            print(file_name)
+            loc_list = find_missing_loc(origin_dir,file_name)
+            # print (loc_list)
+            insert_multirows(origin_dir,file_name,loc_list)
+            print(file_name+"success")
+
+def insert_multirows(origin_dir,file_name,loc_list):
+    with open(os.path.join(origin_dir,file_name), "r") as fp:
+        data = fp.read()
+        lines = data.split('\n')
+        # loc_list = [22,45]#
+        len = loc_list.__len__()
+        cnt = 0
+        for i in loc_list:
+            i = i+cnt
+            info1 = lines[i].split(',')
+            loc = 12
+            date = info1[0][:12]+'3'+info1[0][loc+1:]   #change date
+
+            if(i<len):
+                info2 = lines[i+1].split(',')
+                max =str( (float(info1[1])+float(info2[1]))/2 )
+                min =str( (float(info1[2])+float(info2[2]))/2 )
+            else:
+                info2 = lines[i-1].split(',')
+                max = str( (float(info1[1])*2 - float(info2[1])))
+                min = str((float(info1[2])*2 - float(info2[2])))
+
+            lines.insert(i+1, date + ',' + max + ',' + min)
+            # print(lines)
+            cnt = cnt+1
+
+        data = '\n'.join(lines)
+        with open(os.path.join(origin_dir,file_name), "w") as fp:
+            fp.write(data)
+            # print("asuc")
+
+def find_missing_loc(origin_dir,file_name):
+    loc_list = []
+    with open(os.path.join(origin_dir,file_name), "r") as fp:
+        data = fp.read()
+        lines = data.split('\n')  #line list []
+        len = lines.__len__()
+        cnt = 0
+        for i in range(0,len):
+            cnt = cnt+1
+            info = lines[i].split(',')   #row info list
+            date = info[0]  #date string
+            if date != '' and date[11]is'2' and date[12]is'2':
+                loc_list.append(cnt-1)
+
+        # print(loc_list)
+    return loc_list
+
 
 
