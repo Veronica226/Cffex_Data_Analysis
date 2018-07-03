@@ -71,6 +71,11 @@ def generate_plot_data(origin_dir, output_dir):
     for i in f_list:
         file_name = os.path.splitext(i)[0]
         file_name_list = file_name.split('_')
+        h = file_name_list.index("hourly")
+        host_name_list = []
+        for a in range(1,h):
+            host_name_list.append(file_name_list[a])
+        host_name = '_'.join(host_name_list)
 
         with open(origin_dir + "/" + i, "r") as fp1:
             if file_name.endswith("disk"):           #磁盘文件中diskname字段有不同的磁盘名
@@ -78,26 +83,27 @@ def generate_plot_data(origin_dir, output_dir):
                 for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
                     # print (diskname)
                     # print (group)
-                    output_file = os.path.join(output_dir, file_name_list[1] + '_' + file_name_list[3] + '_' + diskname[1:].replace('/', '-') + '.csv')
+                    output_file = os.path.join(output_dir, host_name + '_' + file_name_list[h+1] + '_' + diskname[1:].replace('/', '_') + '.csv')
+                    # output_file = os.path.join(output_dir, file_name_list[1] + '_' + file_name_list[3] + '_' + diskname[1:].replace('/', '-') + '.csv')
                     #del group['diskname']
                     group.drop(['diskname'],axis=1, inplace=True)
                     group['archour'] = group['archour'].apply(trans_date)
                     group.to_csv(output_file, sep=',', index=False, header=False)
 
             elif file_name.endswith("disk")==False:
-                output_file = os.path.join(output_dir,file_name_list[1]+'_'+file_name_list[3]+'.csv') #主机名 部件名
+                output_file = os.path.join(output_dir, host_name+ '_'+file_name_list[h+1]+'.csv') #主机名 部件名
                 data = pd.read_csv(fp1,usecols=[0,5,7], dtype=str)  #时间 最大值 最小值
                 data['archour'] = data['archour'].apply(trans_date)
                 data.to_csv(output_file, sep=',', index=False, header=False)
 
-def linear_insert(origin_dir, output_dir):
-    with open("","r") as fp:
-        data = fp.read()
-        lines = data.split('\n')
-        lines.insert(5,"new line")
-        data = '\n'.join(lines)
-        with open("","w") as fp:
-            fp.write(data)
+# def linear_insert(origin_dir, output_dir):
+#     with open("","r") as fp:
+#         data = fp.read()
+#         lines = data.split('\n')
+#         lines.insert(5,"new line")
+#         data = '\n'.join(lines)
+#         with open("","w") as fp:
+#             fp.write(data)
 
 def insert_missing_data(origin_dir):
      f_list = os.listdir(origin_dir)
@@ -155,8 +161,60 @@ def find_missing_loc(origin_dir,file_name):
             if date != '' and date[11]is'2' and date[12]is'2':
                 loc_list.append(cnt-1)
 
-        # print(loc_list)
     return loc_list
+
+def generate_feature_by_hostname(origin_dir, out_file):
+    # feature_matrix = []     #样本矩阵，每行为主机对应特征
+    # label = []   #标记某一时间的样本对应是否有事件发生
+    f_list = os.listdir(origin_dir)    #csv list
+    host_name_file = {}
+    ignored_disk_name = ['oracle','']
+
+    for file_name in f_list:
+        host_name = get_host_name(file_name)        #创建host_name 对应的dict 每个host包含多个文件
+        host_name_file[host_name]=[]
+    for file_name in f_list:
+        host_name = get_host_name(file_name)
+        host_name_file[host_name].append(file_name)
+
+    host_name_list = host_name_file.keys()
+    for h_name in host_name_list:            #遍历每个主机对应的文件list
+        f_list = host_name_file[h_name]
+        # out_file = os.path.join(output_dir,h_name+'.csv')
+        df = pd.DataFrame(columns = ['hostname','archour'])
+        #创建dataframe
+        cnt = 1
+        for f in f_list:
+            with open(origin_dir + "/" + f, "r") as fp1:            #通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
+                data = pd.read_csv(fp1, dtype=str,index_col=False)
+                data.columns = ['archour', 'maxvalue-'+str(cnt), 'minvalue-'+str(cnt)]
+                df = pd.merge(left=df, right=data, on=['archour'],how="outer",left_index= False,right_index= False)
+                cnt = cnt + 1
+        df['hostname'] = h_name
+        df.to_csv(out_file, sep=',', index=False,mode='a+')
+        # df.to_csv(out_file, sep=',', index=False)#将dataframe追加写入到同一个文件中
+        print(df)
+
+
+def get_host_name(file_name):
+    f_name = os.path.splitext(file_name)[0].split('_')
+    ele = ["cpu", "disk", "mem"]
+    host_name_list = []
+    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
+        if e in f_name:
+            h = f_name.index(e)
+    for a in range(0, h):
+        host_name_list.append(f_name[a])
+    host_name = '_'.join(host_name_list)
+    return host_name
+
+
+
+
+
+
+
+
 
 
 
