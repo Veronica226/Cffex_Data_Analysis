@@ -1,6 +1,7 @@
 import sys
 
 from code.preprocessing import data_preprocessing
+from code.feature_engineering import feature_extraction
 import os
 
 sys.path.append("..")
@@ -25,19 +26,22 @@ host_alarm_dir = os.path.join(BASE_DIR,"raw_data","cffex-host-alarm")
 
 #数据预处理
 # data_preprocessing.data_preprocessing_process(origin_dir,output_dir,host_alarm_dir)
-# predict_data = os.path.join(predict_data_dir,"predict_data.csv")
+predict_data = os.path.join(predict_data_dir,"predict_data.csv")
 #data_preprocessing.data_preprocessing_process(origin_dir,output_dir)
 # data_preprocessing.generate_plot_data(output_dir,plot_data_dir)
 #data_preprocessing.generate_kpi_plot(origin_dir, plot_dir)
-#data_preprocessing.insert_missing_data(plot_data_dir)
-#data_preprocessing.generate_feature_by_hostname(plot_data_dir, predict_data)
-#data_preprocessing.get_host_name(os.path.join(plot_data_dir,'/alarmsvr1_cpu.csv'))
+# data_preprocessing.insert_missing_data(plot_data_dir)
+feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
+# feature_extraction.get_host_name(os.path.join(plot_data_dir,'/alarmsvr1_cpu.csv'))
 # data_preprocessing.check_completeness(plot_data_dir)
 # node_alias_file = os.path.join(alarm_data_dir,'cffex-host-alarm-node-alias.csv')
 # alarm_processed_file =  os.path.join(alarm_data_dir,'cffex-host-alarm-processed.csv')
-# alarm_out_file = os.path.join(predict_data_dir,"alarm_data.csv")
+alarm_out_file = os.path.join(predict_data_dir,"alarm_data.csv")
+merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
 # data_preprocessing.csv_to_dict(node_alias_file)
 # data_preprocessing.generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file)
+
+feature_extraction.generate_data_matrix_and_vector(predict_data,alarm_out_file,merged_data_file)
 
 # f_list = os.listdir(plot_data_dir)
 # for file_name in f_list:
