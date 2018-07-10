@@ -5,6 +5,7 @@ import pandas as pd
 from code.preprocessing import data_preprocessing
 from code.feature_engineering import feature_extraction
 from code.model import predict_model
+
 import os
 
 sys.path.append("..")
@@ -34,11 +35,13 @@ predict_data = os.path.join(predict_data_dir,"predict_data.csv")
 # data_preprocessing.generate_plot_data(output_dir,plot_data_dir)
 #data_preprocessing.generate_kpi_plot(origin_dir, plot_dir)
 # data_preprocessing.insert_missing_data(plot_data_dir)
+
 # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
 # feature_extraction.get_host_name(os.path.join(plot_data_dir,'/alarmsvr1_cpu.csv'))
 # data_preprocessing.check_completeness(plot_data_dir)
 # node_alias_file = os.path.join(alarm_data_dir,'cffex-host-alarm-node-alias.csv')
 # alarm_processed_file =  os.path.join(alarm_data_dir,'cffex-host-alarm-processed.csv')
+
 # alarm_out_file = os.path.join(predict_data_dir,"alarm_data.csv")
 merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
 model_save_file = os.path.join(predict_data_dir,"model_save.csv")
@@ -58,3 +61,4 @@ model_save_file = os.path.join(predict_data_dir,"model_save.csv")
 # print( df[df['last_time'] < "2018-01-24 00:00:00"].shape[0])
 
 predict_model.classifiers_for_prediction(merged_data_file, model_save_file)
+
