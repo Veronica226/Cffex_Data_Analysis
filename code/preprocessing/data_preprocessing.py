@@ -17,7 +17,7 @@ def trans_date(date_str):
 def trans_alarm_date(date_str):
     return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:11] + ':00:00'
 
-def data_preprocessing_process(origin_dir, output_dir, host_alarm_dir):
+def data_preprocessing_process(origin_dir, output_dir):
 
     f_list = os.listdir(origin_dir)
     for i in f_list:  ##每个log文件
