@@ -1,7 +1,7 @@
 import datetime
 import os
 import pandas as pd
-from code.preprocessing.data_preprocessing import common_disk_list
+from codes.preprocessing.data_preprocessing import common_disk_list
 
 ######################################################################################
 #Author: 王靖文
@@ -10,7 +10,8 @@ def generate_feature_by_hostname(origin_dir, out_file):
     f_list = os.listdir(origin_dir)    #csv list
     host_name_file_dict = {}
     for file_name in f_list:
-        host_name = get_host_name(file_name)        #创建host_name 对应的dict 每个host包含多个文件
+        host_name = get_host_name(file_name)
+        print (host_name)#创建host_name 对应的dict 每个host包含多个文件
         host_name_file_dict[host_name] = host_name_file_dict.get(host_name, [])
         host_name_file_dict[host_name].append(file_name)
 

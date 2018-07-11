@@ -1,1 +1,3 @@
 # Cffex_Data_Analysis
+
+codes文件夹不能取名成code，因为会和pycharm debug模式下的一个code文件夹重名

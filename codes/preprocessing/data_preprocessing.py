@@ -57,10 +57,14 @@ def generate_plot_data(origin_dir, output_dir):
         file_path = os.path.join(origin_dir, file)
         file_name = os.path.splitext(file)[0]
         file_name_list = file_name.split('_')
-        host_name = file_name_list[1] #主机名是第1个元素（从0开始）
+        h = file_name_list.index("hourly")
+        host_name_list = []
+        for a in range(1, h):   #有的主机名用下划线连接
+            host_name_list.append(file_name_list[a])
+        host_name = '_'.join(host_name_list)  #
         device_name = file_name_list[-1]  #设备名称是第-1个元素（list从末尾往前数）
         if file_name.endswith("disk"):  # 磁盘文件中diskname字段有不同的磁盘名
-            data = pd.read_csv(file_path, usecols=['archour', 'hostname', 'maxvalue','minvalue'], dtype=str)
+            data = pd.read_csv(file_path, usecols=['archour','diskname', 'maxvalue','minvalue'], dtype=str)
             for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
                 disk_name = 'rt' if len(diskname) == 1 and diskname[0] == '/' else diskname[1:]
                 disk_name = disk_name.replace('/', '_')

@@ -1,5 +1,6 @@
 import time
-
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import random
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, f1_score
@@ -13,6 +14,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn import svm,datasets,metrics
 from sklearn.externals import joblib
+from settings import *
 import pickle
 import pandas as pd
 
@@ -36,7 +38,7 @@ def knn_classifier(train_x, train_y):
 
 # Logistic Regression Classifier
 def logistic_regression_classifier(train_x, train_y):
-    model = LogisticRegression(penalty='l2',class_weight="balanced")
+    model = LogisticRegression(C=10, penalty='l2',class_weight="balanced")
     model.fit(train_x, train_y)
     return model
 
@@ -64,7 +66,8 @@ def gradient_boosting_classifier(train_x, train_y):
 
 # SVM Classifier
 def svm_classifier(train_x, train_y):
-    model = SVC(kernel='rbf', class_weight="balanced" ,probability=True)
+    model = SVC(kernel='rbf', class_weight="balanced" , max_iter=5000,  random_state=2018)
+    #model = SVC(kernel='rbf', class_weight="balanced", max_iter=200, probability=True, random_state=2018)
     model.fit(train_x, train_y)
     print("fit scuuess")
     return model
@@ -97,63 +100,74 @@ def read_data(data_file):
     test_x = test.drop('event', axis=1)
     return train_x, train_y, test_x, test_y
 
-def generate_ROC_plot(test_y, predict,classifier):
+def generate_ROC_plot(test_y, predict,classifier_name):
     FP, TP, thresholds = roc_curve(test_y, predict)
     ROC_auc = auc(FP, TP)
-    plt.title(classifier+'- ROC CURVE')
+    fig = plt.figure()
+    plt.title(classifier_name+'- ROC CURVE')
     plt.plot(FP, TP, 'b', label='AUC = %0.2f' % ROC_auc)
     plt.legend(loc='lower right')
     plt.plot([0, 1], [0, 1], 'r--')
-    plt.xlim([-0.1, 1.2])
-    plt.ylim([-0.1, 1.2])
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.show()
+    roc_plot_path = os.path.join(metric_figures_dir, classifier_name + '_ROC_CURVE.png')
+    fig.savefig(roc_plot_path, dpi=100)
 
-def generate_PR_plot(test_y, predict,classifier):
+def generate_PR_plot(test_y, predict,classifier_name):
     precision, recall, thresholds = precision_recall_curve(test_y, predict)
-    plt.title(classifier+'- PR CURVE')
-    plt.plot(precision, recall, 'r')
-    plt.xlim([-0.1, 1.2])
-    plt.ylim([-0.1, 1.2])
+    fig = plt.figure()
+    plt.title(classifier_name+'- PR CURVE')
+    plt.plot(precision, recall, 'b')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
     plt.ylabel('Recall')
     plt.xlabel('Precision')
     plt.show()
-
+    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_PR_CURVE.png')
+    fig.savefig(pr_plot_path, dpi=100)
 
 
 def classifiers_for_prediction(data_file, model_save_file):
     model_save = {}
 
-    test_classifiers = [ 'SVM']
-    classifiers = {#'NB': naive_bayes_classifier,
-                   # 'KNN': knn_classifier,
-                   # 'LR': logistic_regression_classifier,
-                   # 'RF': random_forest_classifier,
-                   # 'DT': decision_tree_classifier,
+    test_classifiers_list = ['LR', 'SVM']
+    classifiers = {'NB': naive_bayes_classifier,
+                   'KNN': knn_classifier,
+                   'LR': logistic_regression_classifier,
+                   'RF': random_forest_classifier,
+                   'DT': decision_tree_classifier,
                    'SVM': svm_classifier,
-                   # 'SVMCV': svm_cross_validation,
-                   # 'GBDT': gradient_boosting_classifier
+                   'SVMCV': svm_cross_validation,
+                   'GBDT': gradient_boosting_classifier
                    }
 
     print('reading training and testing data...')
     train_x, train_y, test_x, test_y = read_data(data_file)
 
-    for classifier in test_classifiers:
+    for classifier in test_classifiers_list:
         print('******************* %s ********************' % classifier)
         start_time = time.time()
         model = classifiers[classifier](train_x, train_y)
         print('training took %fs!' % (time.time() - start_time))
         # predict = model.predict(test_x)
-        predict_proba = model.predict_proba(test_x)
+        predict_proba = model.predict(test_x)
+        #predict_proba = model.predict_proba(test_x)[:,1]
         if model_save_file != None:
             model_save[classifier] = model
+        #predict_proba[predict_proba >= 0.5] = 1
+        #predict_proba[predict_proba < 0.5] = 0
+        #predict_proba = predict_proba.astype(np.int64)
+        #print(predict_proba)
         precision = metrics.precision_score(test_y, predict_proba)
         recall = metrics.recall_score(test_y, predict_proba)
         f1score = f1_score(test_y, predict_proba)
-        print('precision: %.2f%%, recall: %.2f%%, f1score: %.2f%%' % (100 * precision, 100 * recall, 100 * f1score))
+        print('precision: %.6f%%, recall: %.6f%%, f1score: %.6f%%' % (100 * precision, 100 * recall, 100 * f1score))
+        print('model score: %.6f' % (model.score(test_x, test_y)))
         accuracy = metrics.accuracy_score(test_y, predict_proba)
-        print('accuracy: %.2f%%' % (100 * accuracy))
+        print('accuracy: %.6f%%' % (100 * accuracy))
         generate_ROC_plot(test_y, predict_proba,classifier)
         generate_PR_plot(test_y, predict_proba, classifier)
 
