@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-from pandas import DataFrame
 import pandas as pd
 import numpy as np
+from datetime import datetime,timedelta
 import os, sys, json, csv, re
 
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
@@ -17,13 +17,14 @@ def trans_date(date_str):
 def trans_alarm_date(date_str):
     return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:11] + ':00:00'
 
-def data_preprocessing_process(origin_dir, output_dir):
+#最开始要处理的程序，把raw_data里指标数据的log文件转成csv文件
+def process_raw_data(origin_dir, output_dir):
 
     f_list = os.listdir(origin_dir)
+    num = 0
     for i in f_list:  ##每个log文件
         if os.path.splitext(i)[1] == '.log':
-            host_info_dir = os.path.join(output_dir, "cffex-host-info")
-            file_name = os.path.join(host_info_dir, os.path.splitext(i)[0] + '.csv')
+            file_name = os.path.join(output_dir, os.path.splitext(i)[0] + '.csv')
             # if not os.path.exists(file_name):
             #     os.makedirs(file_name)
             with open(origin_dir + "/" + i, "r") as fp1:
@@ -40,17 +41,18 @@ def data_preprocessing_process(origin_dir, output_dir):
                             hour_data = hour_data + '}'
                         data_list.append(json.loads(hour_data))  # json list
                         # print(hour_data)
-                print(data_list)
+                #print(data_list)
                 print(list(data_list[0].keys()))
-                data_dict = dict(zip(list(data_list[0].keys()), [[] for i in range(len(data_list[0].keys()))]))
 
-                for data_item in data_list:
-                    for key, value in data_item.items():
-                        data_dict[key].append(value)
-
-                df = pd.DataFrame(data_dict)
+                df = pd.DataFrame(data_list)
+                print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
+            num += 1
+            if(num > 1):
+                break
+    print('process raw data finished!')
 
+#只获取时间、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
 def generate_plot_data(origin_dir, output_dir):
     f_list = os.listdir(origin_dir)
     for file in f_list:
@@ -60,9 +62,10 @@ def generate_plot_data(origin_dir, output_dir):
         h = file_name_list.index("hourly")
         host_name_list = []
         for a in range(1, h):   #有的主机名用下划线连接
-            host_name_list.append(file_name_list[a])
-        host_name = '_'.join(host_name_list)  #
+            host_name_list.append(file_name_list[a])  #主机名可能带有下划线，名字很长
+        host_name = '_'.join(host_name_list)
         device_name = file_name_list[-1]  #设备名称是第-1个元素（list从末尾往前数）
+        print('host_name = {0}, device_name = {1}'.format(host_name, device_name))
         if file_name.endswith("disk"):  # 磁盘文件中diskname字段有不同的磁盘名
             data = pd.read_csv(file_path, usecols=['archour','diskname', 'maxvalue','minvalue'], dtype=str)
             for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
@@ -76,23 +79,45 @@ def generate_plot_data(origin_dir, output_dir):
         else:
             output_file_name = host_name+ '_' + device_name + '.csv'
             output_file = os.path.join(output_dir, output_file_name) #主机名 部件名
-            data = pd.read_csv(file_path,usecols=[0,5,7], dtype=str)  #时间 最大值 最小值
+            data = pd.read_csv(file_path,usecols=['archour','maxvalue','minvalue'], dtype=str)  #时间 最大值 最小值
             data['archour'] = data['archour'].apply(trans_date)
             data.to_csv(output_file, sep=',', index=False, header=False)
+    print('generate plot data finished!')
 
-#对数据缺失的文件进行插值处理
-def insert_missing_data(origin_dir):
+#对数据缺失的文件进行插值处理，取平均
+def insert_missing_data(origin_dir, output_dir):
      f_list = os.listdir(origin_dir)
-     for file_name in f_list:
-        f_name = os.path.splitext(file_name)[0]
-        if find_missing_files(origin_dir, file_name) == 1:
-        # if f_name.endswith("cpu") or f_name.endswith("mem"):
-            print(file_name)
-            loc_list = find_missing_loc(origin_dir,file_name)
-            # print (loc_list)
-            insert_multirows(origin_dir,file_name,loc_list)
-            print(file_name+"success")
+     if(not os.path.exists(output_dir)):
+         os.makedirs(output_dir)
+     for file in f_list:
+        file_path = os.path.join(origin_dir, file)
+        file_name = os.path.splitext(file)[0]
+        output_file_path = os.path.join(output_dir, file_name + '.csv')
+        df = pd.read_csv(file_path, sep=',', header=None, names=['archour', 'maxvalue', 'minvalue'], dtype=str)
+        df['archour'] = df['archour'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
+        df[['maxvalue', 'minvalue']] = df[['maxvalue', 'minvalue']].apply(np.float64)
+        df_out = pd.DataFrame(columns=df.columns)
+        row_num = 0
+        for idx in range(df.shape[0]):
+            hour_data = df.loc[idx]
+            df_out.loc[row_num] = df.loc[idx]
+            row_num += 1
+            if(hour_data['archour'].hour == 22):
+                now_time = hour_data['archour'] + timedelta(hours=1)
+                if(idx < df.shape[0] - 1):
+                    nxt_hour_data = df.loc[idx + 1]
+                    now_max_value = (hour_data['maxvalue'] + nxt_hour_data['maxvalue']) / 2
+                    now_min_value = (hour_data['minvalue'] + nxt_hour_data['minvalue']) / 2
+                else:
+                    pre_hour_data = df.loc[idx - 1]
+                    now_max_value = hour_data['maxvalue'] * 2 - pre_hour_data['maxvalue']
+                    now_min_value = hour_data['minvalue'] * 2 - pre_hour_data['minvalue']
+                now_data_dict = {'archour': now_time, 'maxvalue': now_max_value, 'minvalue': now_min_value}
+                df_out.loc[row_num] = pd.Series(now_data_dict)
+                row_num += 1
+        df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
 
+'''
 #获取缺失index的list 采用线性插值的方法
 def insert_multirows(origin_dir,file_name,loc_list):
     with open(os.path.join(origin_dir,file_name), "r") as fp:
@@ -140,7 +165,7 @@ def find_missing_loc(origin_dir,file_name):
                 cnt = cnt+1
                 info = lines[i].split(',')   #row info list
                 date = info[0]  #date string
-                if date != '' and date[11]is'2' and date[12]is'2':
+                if date != '' and date[11]is'2' and date[12]is'2':  #如果用read().split('\n')划分，则list最后一个元素是''
                     loc_list.append(cnt-1)
     print (loc_list)
     return loc_list
@@ -158,6 +183,7 @@ def find_missing_files(origin_dir,file_name):
             return 1#判断是否为数据缺失文件
         else:
             return 0
+'''
 
 #检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
 def check_completeness(origin_dir):
