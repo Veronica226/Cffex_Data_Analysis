@@ -193,6 +193,14 @@ def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应no
     node_value = node_dict[node_key]
     return node_value.lower()        #全部转换为小写
 
+def generate_subplot_data(predict_data, subplot_data_dir):
+    data = pd.read_csv(predict_data, sep=',',dtype=str)
+    for hostname,group in data.groupby('hostname'):
+        subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
+        group.drop(['hostname'], axis=1, inplace=True)
+        group.to_csv(subplot_data_file, sep=',', index=False, header=False)
+
+
 ######################################################################################
 #Author: 普俊韬
 

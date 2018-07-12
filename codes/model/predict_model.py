@@ -3,16 +3,19 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
+
+
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, f1_score
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, ShuffleSplit
 from sklearn import svm,datasets,metrics
+from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
 from settings import *
 import pickle
@@ -69,7 +72,7 @@ def svm_classifier(train_x, train_y):
     model = SVC(kernel='rbf', class_weight="balanced" , max_iter=5000,  random_state=2018)
     #model = SVC(kernel='rbf', class_weight="balanced", max_iter=200, probability=True, random_state=2018)
     model.fit(train_x, train_y)
-    print("fit scuuess")
+    print("fit success")
     return model
 
 
@@ -87,18 +90,24 @@ def svm_cross_validation(train_x, train_y):
     return model
 
 
-def read_data(data_file):
+def read_data(data_file,split):
     data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
                                     'boot_max', 'boot_min','home_max', 'home_min',
                                    'monitor_max', 'monitor_min','rt_max', 'rt_min',
                                     'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=float)
-    train = data[:int(len(data) * 0.9)]         #划分训练数据和测试数据
-    test = data[int(len(data) * 0.9):]
-    train_y = train.event
-    train_x = train.drop('event', axis=1)
-    test_y = test.event
-    test_x = test.drop('event', axis=1)
-    return train_x, train_y, test_x, test_y
+
+    # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
+    # test = data[int(len(data) * 0.8):]
+    # train_y = train.event
+    # train_x = train.drop('event', axis=1)
+    # test_y = test.event
+    # test_x = test.drop('event', axis=1)
+    feature_data = data.drop('event', axis=1)
+    label_data = data.event
+    if split==True:
+        return train_test_split(feature_data,label_data,test_size=0.2,random_state=800)
+    else:
+        return feature_data, label_data
 
 def generate_ROC_plot(test_y, predict,classifier_name):
     FP, TP, thresholds = roc_curve(test_y, predict)
@@ -129,11 +138,35 @@ def generate_PR_plot(test_y, predict,classifier_name):
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_PR_CURVE.png')
     fig.savefig(pr_plot_path, dpi=100)
 
+def generate_learning_curve(data_file,model,classifier_name):
+    cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
+    X, Y = read_data(data_file, split=False)
+    print('start drawing...')
+    train_sizes, train_loss, test_loss = learning_curve(
+        model, X, Y, cv=cv, scoring='neg_mean_squared_error')
+    print('finish drawing...')
+    # 平均每一轮所得到的平均方差(共5轮，分别为样本10%、25%、50%、75%、100%)
+    train_loss_mean = -np.mean(train_loss, axis=1)
+    test_loss_mean = -np.mean(test_loss, axis=1)
+    fig = plt.figure()
+    plt.plot(train_sizes, train_loss_mean, 'o-', color="r",label="Training")
+    plt.plot(train_sizes, test_loss_mean, 'o-', color="g",label="Cross-validation")
+    plt.xlabel("Training examples")
+    plt.ylabel("Loss")
+    plt.legend(loc="best")
+    plt.show()
+    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_learning-curve.png')
+    fig.savefig(pr_plot_path, dpi=100)
 
-def classifiers_for_prediction(data_file, model_save_file):
+def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
+    train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+
+def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['LR', 'SVM']
+    test_classifiers_list = ['KNN','LR', 'RF','DT', 'SVM','GBDT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -145,7 +178,7 @@ def classifiers_for_prediction(data_file, model_save_file):
                    }
 
     print('reading training and testing data...')
-    train_x, train_y, test_x, test_y = read_data(data_file)
+    train_x,  test_x,train_y, test_y = read_data(data_file,split=True)
 
     for classifier in test_classifiers_list:
         print('******************* %s ********************' % classifier)
@@ -168,8 +201,13 @@ def classifiers_for_prediction(data_file, model_save_file):
         print('model score: %.6f' % (model.score(test_x, test_y)))
         accuracy = metrics.accuracy_score(test_y, predict_proba)
         print('accuracy: %.6f%%' % (100 * accuracy))
+        print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
+        print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+        # np.savetxt(predict_proba_file,predict_proba)
+
         generate_ROC_plot(test_y, predict_proba,classifier)
         generate_PR_plot(test_y, predict_proba, classifier)
+        generate_learning_curve(data_file, model, classifier)
 
 
     if model_save_file != None:

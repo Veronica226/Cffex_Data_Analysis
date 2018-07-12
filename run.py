@@ -21,9 +21,11 @@ host_alarm_dir = os.path.join(base_dir,"raw_data","cffex-host-alarm")
 #调用数据预处理的函数
 def call_data_preprocessing_func(flag=False):
     if(flag):
+        predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
+        data_preprocessing.generate_subplot_data(predict_data,subplot_data_dir)
         # data_preprocessing.data_preprocessing_process(origin_data_dir,output_cffex_info_dir)
         # data_preprocessing.generate_plot_data(output_cffex_info_dir,plot_data_dir)
-         data_preprocessing.insert_missing_data(plot_data_dir)
+        # data_preprocessing.insert_missing_data(plot_data_dir)
         # alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
         # node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
         # alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
@@ -43,9 +45,10 @@ def call_feature_extraction_func(flag=False):
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
     if(flag):
+        predict_proba_file = os.path.join(predict_data_dir,"predict_proba.csv")
         merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
         model_save_file = os.path.join(predict_data_dir,"model_save.csv")
-        predict_model.classifiers_for_prediction(merged_data_file, model_save_file)
+        predict_model.classifiers_for_prediction(merged_data_file, model_save_file,predict_proba_file)
 
 
 if __name__ == '__main__':
