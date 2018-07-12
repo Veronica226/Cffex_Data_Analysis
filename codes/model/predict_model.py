@@ -207,7 +207,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
 
         generate_ROC_plot(test_y, predict_proba,classifier)
         generate_PR_plot(test_y, predict_proba, classifier)
-        generate_learning_curve(data_file, model, classifier)
+        # generate_learning_curve(data_file, model, classifier)
 
 
     if model_save_file != None:

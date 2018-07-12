@@ -172,10 +172,10 @@ def check_completeness(origin_dir):
 
 def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     node_dict = csv_to_dict(node_alias_file)
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=[1,5,8])  #提取告警事件文件内的主机、时间、事件内容
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','last_time','alarm_level'])  #提取告警事件文件内的主机、时间、事件内容
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
-    data['first_time'] = data['first_time'].apply(trans_alarm_date)   #修改日期格式
-    data['alarm_content'] = '1'    #将事件全部赋值为1
+    data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
+    data['alarm_level'] = '1'    #将事件全部赋值为1
     data.columns = ['hostname', 'archour','event']
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)

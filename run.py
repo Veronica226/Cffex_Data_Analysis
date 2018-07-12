@@ -22,14 +22,14 @@ host_alarm_dir = os.path.join(base_dir,"raw_data","cffex-host-alarm")
 def call_data_preprocessing_func(flag=False):
     if(flag):
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
-        data_preprocessing.generate_subplot_data(predict_data,subplot_data_dir)
+        # data_preprocessing.generate_subplot_data(predict_data,subplot_data_dir)
         # data_preprocessing.data_preprocessing_process(origin_data_dir,output_cffex_info_dir)
         # data_preprocessing.generate_plot_data(output_cffex_info_dir,plot_data_dir)
         # data_preprocessing.insert_missing_data(plot_data_dir)
-        # alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
-        # node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
-        # alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
-        # data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
+        alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
+        node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
+        alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
+        data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
 
 #调用特征提取的函数
 def call_feature_extraction_func(flag=False):
