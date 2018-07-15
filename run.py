@@ -62,7 +62,7 @@ def call_predict_model_func(flag=False):
 
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
+    call_data_preprocessing_func()
     call_feature_extraction_func()
-    call_predict_model_func()
+    call_predict_model_func(flag=True)
 

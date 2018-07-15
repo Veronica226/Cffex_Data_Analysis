@@ -154,6 +154,7 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.xlabel("Training examples")
     plt.ylabel("Loss")
     plt.legend(loc="best")
+    plt.title(classifier_name + '- LEARNING CURVE')
     plt.show()
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_learning-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
@@ -207,7 +208,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
 
         generate_ROC_plot(test_y, predict_proba,classifier)
         generate_PR_plot(test_y, predict_proba, classifier)
-        # generate_learning_curve(data_file, model, classifier)
+        generate_learning_curve(data_file, model, classifier)
 
 
     if model_save_file != None:
