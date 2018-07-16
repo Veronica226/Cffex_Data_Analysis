@@ -126,73 +126,73 @@ def insert_missing_data(origin_dir, output_dir):
                 row_num += 1
         df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')'''
 
-'''
-#获取缺失index的list 采用线性插值的方法
-def insert_multirows(origin_dir,file_name,loc_list):
-    with open(os.path.join(origin_dir,file_name), "r") as fp:
-        data = fp.read()
-        lines = data.split('\n')
-        # loc_list = [22,45]#
-        len = loc_list.__len__()
-        cnt = 0
-        for i in loc_list:
-            i = i+cnt
-            info1 = lines[i].split(',')
-            loc = 12
-            date = info1[0][:12]+'3'+info1[0][loc+1:]   #change date
 
-            if(i<len):
-                info2 = lines[i+1].split(',')
-                max =str(round((float(info1[1])+float(info2[1]))/2,1) )
-                min =str(round((float(info1[2])+float(info2[2]))/2,1) )
-            else:
-                info2 = lines[i-1].split(',')
-                max = str(round((float(info1[1])*2 - float(info2[1])),1))
-                min = str(round((float(info1[2])*2 - float(info2[2])),1))
+# #获取缺失index的list 采用线性插值的方法
+# def insert_multirows(origin_dir,file_name,loc_list):
+#     with open(os.path.join(origin_dir,file_name), "r") as fp:
+#         data = fp.read()
+#         lines = data.split('\n')
+#         # loc_list = [22,45]#
+#         len = loc_list.__len__()
+#         cnt = 0
+#         for i in loc_list:
+#             i = i+cnt
+#             info1 = lines[i].split(',')
+#             loc = 12
+#             date = info1[0][:12]+'3'+info1[0][loc+1:]   #change date
+#
+#             if(i<len):
+#                 info2 = lines[i+1].split(',')
+#                 max =str(round((float(info1[1])+float(info2[1]))/2,1) )
+#                 min =str(round((float(info1[2])+float(info2[2]))/2,1) )
+#             else:
+#                 info2 = lines[i-1].split(',')
+#                 max = str(round((float(info1[1])*2 - float(info2[1])),1))
+#                 min = str(round((float(info1[2])*2 - float(info2[2])),1))
+#
+#             lines.insert(i+1, date + ',' + max + ',' + min)
+#             # print(lines)
+#             cnt = cnt+1
+#
+#         data = '\n'.join(lines)
+#         with open(os.path.join(origin_dir,file_name), "w") as fp:
+#             fp.write(data)
+#             # print("asuc")
+#
+# #找到文件缺失的行索引
+# def find_missing_loc(origin_dir,file_name):
+#     loc_list = []
+#     with open(os.path.join(origin_dir,file_name), "r") as fp:
+#         data = fp.read()
+#         lines = data.split('\n')  #line list []
+#         len = lines.__len__()
+#         cnt = 0
+#         # print (lines[len-2])
+#         # if lines[len-2]!= ''and lines[len-2][0] != ''and lines[len-2][0][11] is '2' and lines[len-2][0][12] is '2':      #判断是否为数据缺失文件
+#
+#         for i in range(0,len):
+#                 cnt = cnt+1
+#                 info = lines[i].split(',')   #row info list
+#                 date = info[0]  #date string
+#                 if date != '' and date[11]is'2' and date[12]is'2':  #如果用read().split('\n')划分，则list最后一个元素是''
+#                     loc_list.append(cnt-1)
+#     print (loc_list)
+#     return loc_list
+#
+# def find_missing_files(origin_dir,file_name):
+#     with open(os.path.join(origin_dir, file_name), "r") as fp:
+#         data = fp.read()
+#         lines = data.split('\n')  # line list []
+#         i=0
+#         while(lines[i]!=''):
+#             i=i+1
+#         info = lines[i-1].split(',')
+#         date = info[0]
+#         if date != ''and date != ''and date[11] is '2' and date[12] is '2':
+#             return 1#判断是否为数据缺失文件
+#         else:
+#             return 0
 
-            lines.insert(i+1, date + ',' + max + ',' + min)
-            # print(lines)
-            cnt = cnt+1
-
-        data = '\n'.join(lines)
-        with open(os.path.join(origin_dir,file_name), "w") as fp:
-            fp.write(data)
-            # print("asuc")
-
-#找到文件缺失的行索引
-def find_missing_loc(origin_dir,file_name):
-    loc_list = []
-    with open(os.path.join(origin_dir,file_name), "r") as fp:
-        data = fp.read()
-        lines = data.split('\n')  #line list []
-        len = lines.__len__()
-        cnt = 0
-        # print (lines[len-2])
-        # if lines[len-2]!= ''and lines[len-2][0] != ''and lines[len-2][0][11] is '2' and lines[len-2][0][12] is '2':      #判断是否为数据缺失文件
-
-        for i in range(0,len):
-                cnt = cnt+1
-                info = lines[i].split(',')   #row info list
-                date = info[0]  #date string
-                if date != '' and date[11]is'2' and date[12]is'2':  #如果用read().split('\n')划分，则list最后一个元素是''
-                    loc_list.append(cnt-1)
-    print (loc_list)
-    return loc_list
-
-def find_missing_files(origin_dir,file_name):
-    with open(os.path.join(origin_dir, file_name), "r") as fp:
-        data = fp.read()
-        lines = data.split('\n')  # line list []
-        i=0
-        while(lines[i]!=''):
-            i=i+1
-        info = lines[i-1].split(',')
-        date = info[0]
-        if date != ''and date != ''and date[11] is '2' and date[12] is '2':
-            return 1#判断是否为数据缺失文件
-        else:
-            return 0
-'''
 
 #检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
 def check_completeness(origin_dir):
