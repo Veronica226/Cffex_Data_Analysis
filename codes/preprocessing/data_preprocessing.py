@@ -97,7 +97,16 @@ def insert_missing_data(origin_dir, output_dir):
         df['archour'] = df['archour'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
         df[['maxvalue', 'minvalue']] = df[['maxvalue', 'minvalue']].apply(np.float64)
         df_out = pd.DataFrame(columns=df.columns)
-        row_num = 0
+        day_num = df.shape[0] / 23
+        time_range = 23
+        idx = 0
+        for i in range(1, day_num + 1):
+            df_out.loc[idx: idx + time_range] = df.loc[idx: idx + time_range] #左闭右开区间
+            if(i < day_num):
+                pass
+        print(df)
+        break
+        '''row_num = 0
         for idx in range(df.shape[0]):
             hour_data = df.loc[idx]
             df_out.loc[row_num] = df.loc[idx]
@@ -115,7 +124,7 @@ def insert_missing_data(origin_dir, output_dir):
                 now_data_dict = {'archour': now_time, 'maxvalue': now_max_value, 'minvalue': now_min_value}
                 df_out.loc[row_num] = pd.Series(now_data_dict)
                 row_num += 1
-        df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
+        df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')'''
 
 '''
 #获取缺失index的list 采用线性插值的方法
