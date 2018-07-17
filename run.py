@@ -29,8 +29,9 @@ def call_data_preprocessing_func(flag=False):
         #data_preprocessing.process_raw_data(origin_data_dir, output_cffex_info_dir)
         # 提取output_data中的cffex-host-info数据的时间、最大值、最小值数据，将每个主机按cpu、磁盘、mem等部件存入plot_data中
         #data_preprocessing.generate_plot_data(output_cffex_info_dir, plot_data_dir)
+
         # plot_data中部分数据存在23点数据缺失问题，对数据进行线性插值处理
-        data_preprocessing.insert_missing_data(plot_data_dir, os.path.join(output_dir, 'plot-data-1')) #测试一下
+        data_preprocessing.insert_missing_data(plot_data_dir, plot_data_dir) #测试一下
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
         #data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
         # 将predict_data中各主机的特征数据独立存储成csv文件，供matlab画图使用
@@ -62,7 +63,7 @@ def call_predict_model_func(flag=False):
 
 
 if __name__ == '__main__':
-    call_data_preprocessing_func()
+    call_data_preprocessing_func(flag=True)
     call_feature_extraction_func()
-    call_predict_model_func(flag=True)
+    call_predict_model_func()
 

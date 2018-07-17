@@ -93,96 +93,100 @@ def insert_missing_data(origin_dir, output_dir):
         file_path = os.path.join(origin_dir, file)
         file_name = os.path.splitext(file)[0]
         output_file_path = os.path.join(output_dir, file_name + '.csv')
+
+        print(file)
         df = pd.read_csv(file_path, sep=',', header=None, names=['archour', 'maxvalue', 'minvalue'], dtype=str)
         df['archour'] = df['archour'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
         df[['maxvalue', 'minvalue']] = df[['maxvalue', 'minvalue']].apply(np.float64)
+        if df.shape[0] == 139 * 24:
+            df.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
+            continue
+        #所有文件的末尾都是22点或23点
+        df['day'] = df['archour'].apply(lambda x: datetime(x.year, x.month, x.day))
         df_out = pd.DataFrame(columns=df.columns)
-        row_num = 0
-        for idx in range(df.shape[0]):
-            hour_data = df.loc[idx]
-            df_out.loc[row_num] = df.loc[idx]
-            row_num += 1
-            if(hour_data['archour'].hour == 22):
-                now_time = hour_data['archour'] + timedelta(hours=1)
-                if(idx < df.shape[0] - 1):
-                    nxt_hour_data = df.loc[idx + 1]
-                    now_max_value = (hour_data['maxvalue'] + nxt_hour_data['maxvalue']) / 2
-                    now_min_value = (hour_data['minvalue'] + nxt_hour_data['minvalue']) / 2
+        last_day = datetime(2018, 6, 11)
+        group = df.groupby(df['day'])
+        is_exception = False
+        print_is_exception = False
+        except_day = datetime(1, 1, 1)
+        except_day_data_list = []
+        for day, day_df in group:
+            if(is_exception):
+                print_is_exception = True
+                for i in range(1, day.day - except_day.day):  #因为后边还会插入day（当前天）的数据
+                    tmp_df = pd.DataFrame(except_day_data_list)
+                    tmp_df['archour'] = tmp_df['archour'].apply(lambda x: x + timedelta(days=i))
+                    tmp_df['day'] = tmp_df['day'].apply(lambda x: x + timedelta(days=i))
+                    df_out = df_out.append(tmp_df)
+                is_exception = False
+                except_day = datetime(1, 1, 1)
+                except_day_data_list = []
+
+            day_data_list = day_df.to_dict('record')
+            day_df = day_df.reset_index(drop=True)
+            last_row = day_df.loc[day_df.shape[0] - 1]
+            if last_row['archour'].hour == 22: #缺23点的数据
+                if last_row['day'] < last_day: #不是最后一天的数据
+                    front_time_data = day_df.loc[day_df.shape[0] - 1]
+                    try:
+                        nxt_day_df = group.get_group(day + timedelta(days=1)).reset_index(drop=True)
+                    except:
+                        nxt_day_df = day_df
+                        is_exception = True
+                        except_day = day
+                    nxt_time_data = nxt_day_df.loc[0]
+                    now_time = front_time_data['archour'] + timedelta(hours=1)
+                    now_max_value = (front_time_data['maxvalue'] + nxt_time_data['maxvalue']) / 2
+                    now_min_value = (front_time_data['minvalue'] + nxt_time_data['minvalue']) / 2
+                else: #最后一天的数据
+                    front_time_data = day_df.loc[day_df.shape[0] - 1]
+                    pre_front_time_data = day_df.loc[day_df.shape[0] - 2]
+                    now_time = front_time_data['archour'] + timedelta(hours=1)
+                    now_max_value = (front_time_data['maxvalue'] + pre_front_time_data['maxvalue']) / 2
+                    now_min_value = (front_time_data['minvalue'] + pre_front_time_data['minvalue']) / 2
+                hour_data_dict = {'archour': now_time, 'day': datetime(now_time.year, now_time.month, now_time.day) , 'maxvalue': now_max_value, 'minvalue': now_min_value}
+                day_data_list.append(hour_data_dict)
+
+            if(len(day_data_list) == 24):
+                try:
+                    group.get_group(day + timedelta(days=1)).reset_index(drop=True)
+                except:
+                    is_exception = True
+                    except_day = day
+                if (is_exception):  # 相邻两天之间间隔了好几天，比如ywn_monitor1主机在2018年2月4日的数据下一天是2月8日
+                    except_day_data_list = day_data_list.copy()
+                df_out = df_out.append(pd.DataFrame(day_data_list))
+                continue
+
+            day_data_res = [day_data_list[0]]
+            for i in range(1, len(day_data_list)):
+                now_time = day_data_list[i]['archour']
+                front_time = day_data_list[i - 1]['archour']
+                if(now_time.hour - front_time.hour == 1):
+                    day_data_res.append(day_data_list[i])
                 else:
-                    pre_hour_data = df.loc[idx - 1]
-                    now_max_value = hour_data['maxvalue'] * 2 - pre_hour_data['maxvalue']
-                    now_min_value = hour_data['minvalue'] * 2 - pre_hour_data['minvalue']
-                now_data_dict = {'archour': now_time, 'maxvalue': now_max_value, 'minvalue': now_min_value}
-                df_out.loc[row_num] = pd.Series(now_data_dict)
-                row_num += 1
+                    for hour_idx in range(1, now_time.hour - front_time.hour):
+                        missing_time = front_time + timedelta(hours=hour_idx)
+                        missing_max_value = (day_data_list[i - 1]['maxvalue'] + day_data_list[i]['maxvalue']) / 2
+                        missing_min_value = (day_data_list[i - 1]['maxvalue'] + day_data_list[i]['maxvalue']) / 2
+                        hour_data_dict = {'archour': missing_time, 'day': datetime(missing_time.year, missing_time.month, missing_time.day), 'maxvalue': missing_max_value, 'minvalue': missing_min_value}
+                        day_data_res.append(hour_data_dict)
+                    # 这里要记着也插入当前时刻的数据
+                    day_data_res.append(day_data_list[i])
+            if(day_data_res[-1]['archour'].hour != 23):  #还有一天最后的时刻是19点或者20点
+                now_time = day_data_res[-1]['archour']
+                for hour_idx in range(1, 24 - now_time.hour):
+                    missing_time = now_time + timedelta(hours=hour_idx)
+                    missing_max_value = (day_data_res[-1]['maxvalue'] + day_data_list[-2]['maxvalue']) / 2
+                    missing_min_value = (day_data_res[-1]['maxvalue'] + day_data_list[-2]['maxvalue']) / 2
+                    hour_data_dict = {'archour': missing_time,'day': datetime(missing_time.year, missing_time.month, missing_time.day), 'maxvalue': missing_max_value, 'minvalue': missing_min_value}
+                    day_data_res.append(hour_data_dict)
+            #print('data_res= ', len(day_data_res))
+            if(is_exception):  #相邻两天之间间隔了好几天，比如ywn_monitor1主机在2018年2月4日的数据下一天是2月8日
+                except_day_data_list = day_data_res.copy()
+            df_out = df_out.append(pd.DataFrame(day_data_res))
+        df_out.drop(['day'], axis=1, inplace=True)
         df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
-
-
-# #获取缺失index的list 采用线性插值的方法
-# def insert_multirows(origin_dir,file_name,loc_list):
-#     with open(os.path.join(origin_dir,file_name), "r") as fp:
-#         data = fp.read()
-#         lines = data.split('\n')
-#         # loc_list = [22,45]#
-#         len = loc_list.__len__()
-#         cnt = 0
-#         for i in loc_list:
-#             i = i+cnt
-#             info1 = lines[i].split(',')
-#             loc = 12
-#             date = info1[0][:12]+'3'+info1[0][loc+1:]   #change date
-#
-#             if(i<len):
-#                 info2 = lines[i+1].split(',')
-#                 max =str(round((float(info1[1])+float(info2[1]))/2,1) )
-#                 min =str(round((float(info1[2])+float(info2[2]))/2,1) )
-#             else:
-#                 info2 = lines[i-1].split(',')
-#                 max = str(round((float(info1[1])*2 - float(info2[1])),1))
-#                 min = str(round((float(info1[2])*2 - float(info2[2])),1))
-#
-#             lines.insert(i+1, date + ',' + max + ',' + min)
-#             # print(lines)
-#             cnt = cnt+1
-#
-#         data = '\n'.join(lines)
-#         with open(os.path.join(origin_dir,file_name), "w") as fp:
-#             fp.write(data)
-#             # print("asuc")
-#
-# #找到文件缺失的行索引
-# def find_missing_loc(origin_dir,file_name):
-#     loc_list = []
-#     with open(os.path.join(origin_dir,file_name), "r") as fp:
-#         data = fp.read()
-#         lines = data.split('\n')  #line list []
-#         len = lines.__len__()
-#         cnt = 0
-#         # print (lines[len-2])
-#         # if lines[len-2]!= ''and lines[len-2][0] != ''and lines[len-2][0][11] is '2' and lines[len-2][0][12] is '2':      #判断是否为数据缺失文件
-#
-#         for i in range(0,len):
-#                 cnt = cnt+1
-#                 info = lines[i].split(',')   #row info list
-#                 date = info[0]  #date string
-#                 if date != '' and date[11]is'2' and date[12]is'2':  #如果用read().split('\n')划分，则list最后一个元素是''
-#                     loc_list.append(cnt-1)
-#     print (loc_list)
-#     return loc_list
-#
-# def find_missing_files(origin_dir,file_name):
-#     with open(os.path.join(origin_dir, file_name), "r") as fp:
-#         data = fp.read()
-#         lines = data.split('\n')  # line list []
-#         i=0
-#         while(lines[i]!=''):
-#             i=i+1
-#         info = lines[i-1].split(',')
-#         date = info[0]
-#         if date != ''and date != ''and date[11] is '2' and date[12] is '2':
-#             return 1#判断是否为数据缺失文件
-#         else:
-#             return 0
 
 
 #检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
