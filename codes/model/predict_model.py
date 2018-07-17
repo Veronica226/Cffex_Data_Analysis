@@ -143,7 +143,7 @@ def generate_learning_curve(data_file,model,classifier_name):
     X, Y = read_data(data_file, split=False)
     print('start drawing...')
     train_sizes, train_loss, test_loss = learning_curve(
-        model, X, Y, cv=cv, scoring='neg_mean_squared_error')
+        model, X, Y, cv=cv)
     print('finish drawing...')
     # 平均每一轮所得到的平均方差(共5轮，分别为样本10%、25%、50%、75%、100%)
     train_loss_mean = -np.mean(train_loss, axis=1)
@@ -152,7 +152,7 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.plot(train_sizes, train_loss_mean, 'o-', color="r",label="Training")
     plt.plot(train_sizes, test_loss_mean, 'o-', color="g",label="Cross-validation")
     plt.xlabel("Training examples")
-    plt.ylabel("Loss")
+    plt.ylabel("Score")
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
     plt.show()
