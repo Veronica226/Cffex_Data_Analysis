@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 import random
 
 
-from sklearn.metrics import roc_curve, auc, precision_recall_curve, f1_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler,MinMaxScaler
 from sklearn import tree
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
@@ -41,7 +42,7 @@ def knn_classifier(train_x, train_y):
 
 # Logistic Regression Classifier
 def logistic_regression_classifier(train_x, train_y):
-    model = LogisticRegression(C=10, penalty='l2',class_weight="balanced")
+    model = LogisticRegression(C=10, penalty='l2',class_weight='balanced')
     model.fit(train_x, train_y)
     return model
 
@@ -69,9 +70,11 @@ def gradient_boosting_classifier(train_x, train_y):
 
 # SVM Classifier
 def svm_classifier(train_x, train_y):
-    model = SVC(kernel='rbf', class_weight="balanced" , max_iter=5000,  random_state=2018)
+    model = SVC(kernel='rbf', class_weight='balanced' , max_iter=1000, probability=True,  random_state=2018)  #max_iter=5000，而且计算概率，要跑20min
     #model = SVC(kernel='rbf', class_weight="balanced", max_iter=200, probability=True, random_state=2018)
-    model.fit(train_x, train_y)
+    scaler = MinMaxScaler()
+    train_x_standard = scaler.fit_transform(train_x)  #支持向量机要对数据做归一化或者标准化处理，这里将数据归一化到0-1区间
+    model.fit(train_x_standard, train_y)
     print("fit success")
     return model
 
@@ -94,7 +97,7 @@ def read_data(data_file,split):
     data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
                                     'boot_max', 'boot_min','home_max', 'home_min',
                                    'monitor_max', 'monitor_min','rt_max', 'rt_min',
-                                    'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=float)
+                                    'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
 
     # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
     # test = data[int(len(data) * 0.8):]
@@ -104,8 +107,26 @@ def read_data(data_file,split):
     # test_x = test.drop('event', axis=1)
     feature_data = data.drop('event', axis=1)
     label_data = data.event
+
+    # positive_label_number = len(data[data.event == 1]) #正样本数量
+    # positive_index_list = np.array(data[data.event==1].index)   #正样本索引值
+    # nagetive_index_list = np.array(data[data.event==0].index)   #负样本索引值
+    # random_nagetive_indices = np.random.choice(nagetive_index_list, positive_label_number*3,
+    #                                          replace=False)  # 随机采样，并不对原始dataframe进行替换
+    # random_nagetive_indices = np.array(random_nagetive_indices)  # 转换成numpy的array格式转换成矩阵
+    # under_sample_indices = np.concatenate([positive_index_list, random_nagetive_indices])  # 将两组索引数据连接成新的数据索引
+    # under_sample_data = data.iloc[under_sample_indices, :]            #定位到真正数据，iloc通过行号索引行数据
+    #
+    # feature_data = under_sample_data.loc[:, under_sample_data.columns != 'event']
+    # label_data = under_sample_data.loc[:, under_sample_data.columns == 'event']
+    #
+    #
+    # test_feature_data = data.drop(['event'], axis=1)
+    # test_label_data = data.loc[:, 'event']
+
     if split==True:
         return train_test_split(feature_data,label_data,test_size=0.2,random_state=800)
+        #return feature_data, test_feature_data, label_data, test_label_data
     else:
         return feature_data, label_data
 
@@ -143,16 +164,16 @@ def generate_learning_curve(data_file,model,classifier_name):
     X, Y = read_data(data_file, split=False)
     print('start drawing...')
     train_sizes, train_loss, test_loss = learning_curve(
-        model, X, Y, cv=cv, scoring='neg_mean_squared_error')
+        model, X, Y, cv=cv)
     print('finish drawing...')
     # 平均每一轮所得到的平均方差(共5轮，分别为样本10%、25%、50%、75%、100%)
-    train_loss_mean = -np.mean(train_loss, axis=1)
-    test_loss_mean = -np.mean(test_loss, axis=1)
+    train_loss_mean = np.mean(train_loss, axis=1)
+    test_loss_mean = np.mean(test_loss, axis=1)
     fig = plt.figure()
     plt.plot(train_sizes, train_loss_mean, 'o-', color="r",label="Training")
     plt.plot(train_sizes, test_loss_mean, 'o-', color="g",label="Cross-validation")
     plt.xlabel("Training examples")
-    plt.ylabel("Loss")
+    plt.ylabel("Score")
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
     plt.show()
@@ -164,10 +185,25 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, tra
     train_scores_mean = np.mean(train_scores, axis=1)
     test_scores_mean = np.mean(test_scores, axis=1)
 
+def generate_compared_curve(test_y,predict_proba,classifier_name):
+    fig = plt.figure()
+    test_y = test_y[1:50]
+    predict_proba = predict_proba[1:50]
+    x = np.arange(1, len(predict_proba)+1)
+    plt.plot(x,test_y, marker='.', color="lightpink",label="practice")
+    plt.plot(x, predict_proba, marker ='+',color="lightblue",label="predict")
+    plt.xlabel("Training examples")
+    plt.ylabel("label")
+    plt.legend(loc="best")
+    plt.title(classifier_name + '- compared')
+    plt.show()
+    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
+    fig.savefig(pr_plot_path, dpi=100)
+
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['KNN','LR', 'RF','DT', 'SVM','GBDT']
+    test_classifiers_list = ['SVM','GBDT'] #'KNN','LR','RF','DT',
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -187,18 +223,27 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         model = classifiers[classifier](train_x, train_y)
         print('training took %fs!' % (time.time() - start_time))
         # predict = model.predict(test_x)
-        predict_proba = model.predict(test_x)
-        #predict_proba = model.predict_proba(test_x)[:,1]
+        #predict_proba = model.predict(test_x)
+        if(classifier == 'SVM'):
+            test_x = MinMaxScaler().fit_transform(test_x)
+        predict_proba = model.predict_proba(test_x)[:,1]
         if model_save_file != None:
             model_save[classifier] = model
-        #predict_proba[predict_proba >= 0.5] = 1
-        #predict_proba[predict_proba < 0.5] = 0
-        #predict_proba = predict_proba.astype(np.int64)
+
+        generate_ROC_plot(test_y, predict_proba, classifier)
+        generate_PR_plot(test_y, predict_proba, classifier)
+        generate_learning_curve(data_file, model, classifier)
+
+        generate_compared_curve(test_y,predict_proba,classifier)
+
+        predict_proba[predict_proba >= 0.5] = 1
+        predict_proba[predict_proba < 0.5] = 0
+        predict_proba = predict_proba.astype(np.int64)
         #print(predict_proba)
         precision = metrics.precision_score(test_y, predict_proba)
         recall = metrics.recall_score(test_y, predict_proba)
-        f1score = f1_score(test_y, predict_proba)
-        print('precision: %.6f%%, recall: %.6f%%, f1score: %.6f%%' % (100 * precision, 100 * recall, 100 * f1score))
+        fbetascore = fbeta_score(test_y, predict_proba, 0.5)
+        print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
         print('model score: %.6f' % (model.score(test_x, test_y)))
         accuracy = metrics.accuracy_score(test_y, predict_proba)
         print('accuracy: %.6f%%' % (100 * accuracy))
@@ -206,9 +251,9 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
         # np.savetxt(predict_proba_file,predict_proba)
 
-        generate_ROC_plot(test_y, predict_proba,classifier)
-        generate_PR_plot(test_y, predict_proba, classifier)
-        generate_learning_curve(data_file, model, classifier)
+        # generate_ROC_plot(test_y, predict_proba,classifier)
+        # generate_PR_plot(test_y, predict_proba, classifier)
+        # generate_learning_curve(data_file, model, classifier)
 
 
     if model_save_file != None:
