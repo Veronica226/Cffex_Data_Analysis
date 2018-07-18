@@ -69,7 +69,7 @@ def generate_plot_data(origin_dir, output_dir):
         if file_name.endswith("disk"):  # 磁盘文件中diskname字段有不同的磁盘名
             data = pd.read_csv(file_path, usecols=['archour','diskname', 'maxvalue','minvalue'], dtype=str)
             for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
-                disk_name = 'rt' if len(diskname) == 1 and diskname[0] == '/' else diskname[1:]
+                disk_name = 'rt' if len(diskname) == 1 and diskname[0] == '/' else diskname[1:]  #将主机的根目录用rt表示
                 disk_name = disk_name.replace('/', '_')
                 output_file_name = '_'.join([host_name, device_name, disk_name]) + '.csv'
                 output_file = os.path.join(output_dir, output_file_name)
@@ -201,23 +201,15 @@ def check_completeness(origin_dir):
                 print(row_num)
 
 def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
-    node_dict = csv_to_dict(node_alias_file)
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','last_time','alarm_level'])  #提取告警事件文件内的主机、时间、事件内容
+    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
+    node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','last_time','alarm_level'])  #提取告警事件文件内的主机、时间、事件级别
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
     data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
-    data['alarm_level'] = '1'    #将事件全部赋值为1
+    data['alarm_level'] = '1'    #将事件级别全部赋值为1
     data.columns = ['hostname', 'archour','event']
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)
-
-def csv_to_dict(file_name):
-    node_dict={}     #创建node-alias文件对应的字典
-    with open(file_name)as f:
-        data = csv.reader(f,delimiter=',')
-        for row in data:
-            node_dict[row[0]]=row[1]  #每行第一个元素为key  第二个元素为value
-    print (node_dict)
-    return node_dict
 
 def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应node_alias 也就是主机名
     node_value = node_dict[node_key]
@@ -244,57 +236,57 @@ def process_alarm_data(host_alarm_dir, output_dir):
     host_alarm_content_dir = os.path.join(host_alarm_dir,"cffex-host-alarm-content.csv")
     #定义告警数据处理后输出路径
     #处理后的告警数据总表
-    host_alarm_processed_dir = os.path.join(output_dir,"cffex-host-alarm","cffex-host-alarm-processed.csv")
+    host_alarm_processed_dir = os.path.join(output_dir,"cffex-host-alarm-processed.csv")
     #处理后的告警组件数据
-    host_alarm_component_dir = os.path.join(output_dir,"cffex-host-alarm","cffex-host-alarm-component.csv")
+    host_alarm_component_dir = os.path.join(output_dir,"cffex-host-alarm-component.csv")
     #处理后的告警类别数据
-    host_alarm_category_dir = os.path.join(output_dir,"cffex-host-alarm","cffex-host-alarm-category.csv")
+    host_alarm_category_dir = os.path.join(output_dir,"cffex-host-alarm-category.csv")
     #处理后的组件别名数据
-    host_alarm_node_alias_dir = os.path.join(output_dir,"cffex-host-alarm","cffex-host-alarm-node-alias.csv")
+    host_alarm_node_alias_dir = os.path.join(output_dir,"cffex-host-alarm-node-alias.csv")
 
     #TODO：进行原始数据的分割处理
     #读取原始数据（GBK编码，数据不带列标题）
-    data = pd.read_csv(host_alarm_rawdata_dir, encoding = 'GBK', header = None)
+    data = pd.read_csv(host_alarm_rawdata_dir, header = None, names=['alarm_str'], encoding = 'GBK')
     #分割数据字段，分隔符'|||'（'[|]+'),分割后扩展列
-    data_processed = data[0].str.split('[|]+',expand = True)
+    data_processed = data['alarm_str'].str.split('[|]+',expand = True)
     #插入列标题
     data_processed.columns = ['node_name', 'node_alias', 'component', 'category', 'alarm_count', 'first_time', 'last_time', 'alarm_level', 'alarm_content']
     #TODO：进行'component'字段的处理
 
     #将'component'字段提取出来作为一个DataFrame
-    data_component = data_processed.loc[:,['component']]
+    data_component = data_processed[['component']].copy()
     #去掉重复数据
     data_component_processed = data_component.drop_duplicates()
     #插入id列，编号从1开始
     data_component_processed['id'] = range(1,len(data_component_processed) + 1)
     #将列顺序调整为['id', 'component']
     data_component_processed = data_component_processed[['id','component']]
-    #将处理后结果写入'cffex-host-alarm-component.csv'（不带行标签，GBK编码）
-    data_component_processed.to_csv(host_alarm_component_dir, index = 0, encoding = 'GBK')
+    #将处理后结果写入'cffex-host-alarm-component.csv'（不带行标签，utf-8编码）
+    data_component_processed.to_csv(host_alarm_component_dir, sep=',', index=False, encoding='utf-8')
 
     #TODO：进行'category'字段的处理
     #将'category'字段提取出来作为一个DataFrame
-    data_category = data_processed.loc[:,['category']]
+    data_category = data_processed[['category']].copy()
     #去掉重复数据
     data_category_processed = data_category.drop_duplicates()
     #插入id列，编号从1开始
     data_category_processed['id'] = range(1,len(data_category_processed) + 1)
     #将列顺序调整为['id', 'category']
     data_category_processed = data_category_processed[['id','category']]
-    #将处理后结果写入'cffex-host-alarm-category.csv'（不带行标签，GBK编码）
-    data_category_processed.to_csv(host_alarm_category_dir, index = 0, encoding = 'GBK')
+    #将处理后结果写入'cffex-host-alarm-category.csv'（不带行标签，utf-8）
+    data_category_processed.to_csv(host_alarm_category_dir, index = 0, encoding = 'utf-8')
 
     #TODO：进行'node_alias'字段的处理
     #将'node_alias'字段提取出来作为一个DataFrame
-    data_node_alias = data_processed.loc[:,['node_alias']]
+    data_node_alias = data_processed[['node_alias']].copy()
     #去掉重复数据
     data_node_alias_processed = data_node_alias.drop_duplicates()
     #插入id列，编号从1开始
     data_node_alias_processed['id'] = range(1,len(data_node_alias_processed) + 1)
     #将列顺序调整为['id', 'node_alias']
     data_node_alias_processed = data_node_alias_processed[['id','node_alias']]
-    #将处理后结果写入'cffex-host-alarm-node-alias.csv'（不带行标签，GBK编码）
-    data_node_alias_processed.to_csv(host_alarm_node_alias_dir, index = 0, encoding = 'GBK')
+    #将处理后结果写入'cffex-host-alarm-node-alias.csv'（不带行标签，utf-8编码）
+    data_node_alias_processed.to_csv(host_alarm_node_alias_dir, index = 0, encoding = 'utf-8')
 
     #TODO：将'component','category'和'node_alias'字段替换为对应的'id'值，方便后续的数据处理
     #对'component'字段进行查找和替换
@@ -317,11 +309,13 @@ def process_alarm_data(host_alarm_dir, output_dir):
             else:
                 data = str(data_processed_content['id'][i])
                 return data
+        return '-1'  #-1表示没有事件匹配
 
     #调用替换函数
     data_processed['alarm_content'] = data_processed['alarm_content'].apply(re_replace)
-    #将处理后结果写入'cffex-host-alarm-processed.csv'（不带行标签，GBK编码）
-    data_processed.to_csv(host_alarm_processed_dir, index = 0, encoding = 'GBK')
+    #将处理后结果写入'cffex-host-alarm-processed.csv'（不带行标签，utf-8编码）
+    data_processed.to_csv(host_alarm_processed_dir, index = 0, encoding = 'utf-8')
+    print('process alarm raw data finished!')
 #END 'cffex-host-alarm.csv' process code
 
 
