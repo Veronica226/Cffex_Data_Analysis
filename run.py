@@ -48,9 +48,9 @@ def call_feature_extraction_func(flag=False):
         merged_data_file = os.path.join(predict_data_dir, "merged_data.csv")
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
-        # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
+        feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        feature_extraction.generate_data_matrix_and_vector(predict_data,alarm_file,merged_data_file)
+        # feature_extraction.generate_data_matrix_and_vector(predict_data,alarm_file,merged_data_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -65,6 +65,6 @@ def call_predict_model_func(flag=False):
 
 if __name__ == '__main__':
     call_data_preprocessing_func()
-    call_feature_extraction_func()
-    call_predict_model_func(flag=True)
+    call_feature_extraction_func(flag=True)
+    call_predict_model_func()
 

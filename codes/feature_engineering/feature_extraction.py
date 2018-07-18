@@ -31,7 +31,7 @@ def generate_feature_by_hostname(origin_dir, out_file):
             with open(origin_dir + "/" + f, "r") as fp1:
                 data = pd.read_csv(fp1, sep=',', dtype=str, header=None,index_col=None)  #header=None设置列名为空，自动用0开头的数字替代
                 data.columns = ['archour',prefix+ '_max', prefix+'_min']  #列名
-                df = pd.merge(df, data, on=['archour'], how="outer",left_index= False,right_index= False)  #通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
+                df = pd.merge(df, data, on=['archour'], how="inner",left_index= False,right_index= False)  #通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
                 # print (df)
 
         df['hostname'] = h_name
