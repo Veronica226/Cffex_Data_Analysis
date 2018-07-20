@@ -94,10 +94,21 @@ def svm_cross_validation(train_x, train_y):
 
 
 def read_data(data_file,split):
-    data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
-                                    'boot_max', 'boot_min','home_max', 'home_min',
-                                   'monitor_max', 'monitor_min','rt_max', 'rt_min',
-                                    'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
+    # data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
+    #                                 'boot_max', 'boot_min','home_max', 'home_min',
+    #                                'monitor_max', 'monitor_min','rt_max', 'rt_min',
+    #                                 'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
+
+    data = pd.read_csv(data_file, sep=',', usecols=['cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+                                                    'boot_max', 'boot_min', 'home_max', 'home_min',
+                                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
+                                                     'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
+                                                      'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
+                                                     'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
+                                                      'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
+                                                      'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
+                                                     'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2','event'], dtype=np.float64)
 
     # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
     # test = data[int(len(data) * 0.8):]
@@ -143,7 +154,7 @@ def generate_ROC_plot(test_y, predict,classifier_name):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.show()
-    roc_plot_path = os.path.join(metric_figures_dir, classifier_name + '_ROC_CURVE.png')
+    roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_ROC_CURVE.png')
     fig.savefig(roc_plot_path, dpi=100)
 
 def generate_PR_plot(test_y, predict,classifier_name):
@@ -156,7 +167,7 @@ def generate_PR_plot(test_y, predict,classifier_name):
     plt.ylabel('Recall')
     plt.xlabel('Precision')
     plt.show()
-    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_PR_CURVE.png')
+    pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_PR_CURVE.png')
     fig.savefig(pr_plot_path, dpi=100)
 
 def generate_learning_curve(data_file,model,classifier_name):
@@ -177,7 +188,7 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
     plt.show()
-    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_learning-curve.png')
+    pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_learning-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
@@ -203,7 +214,7 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['SVM','GBDT'] #'KNN','LR','RF','DT',
+    test_classifiers_list = ['GBDT','KNN','LR','RF','DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
