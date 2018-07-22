@@ -24,11 +24,7 @@ def call_data_preprocessing_func(flag=False):
         alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
         node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
         alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
-<<<<<<< HEAD
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
-=======
-        predict_data = os.path.join(predict_data_dir,"predict_data.csv")
->>>>>>> 05e3baeedd74e4a2509dc124f4c9f0263433c748
 
         #处理原始告警数据
         #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -41,6 +37,7 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.insert_missing_data(plot_data_dir, plot_data_dir) #测试一下
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
         #data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
+
         # 将predict_data中各主机的特征数据独立存储成csv文件，供matlab画图使用。在feature_extraction之后才会生成predict_data
         # data_preprocessing.generate_subplot_data(predict_data, subplot_data_dir)
         # 检查plot_data数据完整性
