@@ -54,6 +54,9 @@ def process_raw_data(origin_dir, output_dir):
 
 #只获取时间、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
 def generate_plot_data(origin_dir, output_dir):
+    #如果output_dir没有创建，则需要先创建该文件夹
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     f_list = os.listdir(origin_dir)
     for file in f_list:
         file_path = os.path.join(origin_dir, file)
@@ -215,7 +218,10 @@ def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应no
     node_value = node_dict[node_key]
     return node_value.lower()        #全部转换为小写
 
+#获得matlab需要画图用的数据
 def generate_subplot_data(predict_data, subplot_data_dir):
+    if not os.path.exists(subplot_data_dir):
+        os.makedirs(subplot_data_dir)
     data = pd.read_csv(predict_data, sep=',',dtype=str)
     for hostname,group in data.groupby('hostname'):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')

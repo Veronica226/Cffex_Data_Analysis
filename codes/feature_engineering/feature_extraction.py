@@ -92,7 +92,7 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
 
 
 
-def generate_3days_history_feature(origin_dir, history_data_file):
+def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
     host_name_file_dict = {}
     for file_name in f_list:
@@ -147,16 +147,19 @@ def generate_3days_history_feature(origin_dir, history_data_file):
                                    'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
                                    'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2']
         df_1hour_before = df_1hour_before.reset_index(drop=True)    #重置索引列
-        df = df[2:]
+
+        df = df.loc[2:] #从第三个时刻开始算起，去掉前两个时刻，从而构造时间窗口
         df = df.reset_index(drop=True)
         df = df.join(df_1hour_before,how = 'outer')
         df = df.join(df_2hour_before,how = 'outer')
-        print(df)
+
         df_all = pd.concat([df_all, df])   #连接当前主机的df数据到df_all中
+        print(df_all)
+        break
     print('yes')
     print(df_all)
     df_all.to_csv(history_data_file, sep=',', index=False)
-    print(df_all.shape)  #643560*16
+    print(df_all.shape)  #643560*44
     print('done')
 
 
