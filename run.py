@@ -40,9 +40,6 @@ def call_data_preprocessing_func(flag=False):
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
         #data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
         # 将predict_data中各主机的特征数据独立存储成csv文件，供matlab画图使用。在feature_extraction之后才会生成predict_data
-        # generatesubplot实际上是用来获得Matlab画图的数据
-        data_preprocessing.generate_subplot_data(predict_data, subplot_data_dir)
-        #实际上这里逻辑有些混乱，这个subplot是根据feature_extraction获得了特征数据之后，才可以生成这个subplot的数据
         # 检查plot_data数据完整性
         #data_preprocessing.check_completeness(plot_data_dir)
 
@@ -57,8 +54,11 @@ def call_feature_extraction_func(flag=False):
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
 
         # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
-        feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
+        # generatesubplot实际上是用来获得Matlab画图的数据，获得了predict_data之后才可以执行这条语句
+        data_preprocessing.generate_subplot_data(predict_data, subplot_data_dir)
+        # 实际上这里逻辑有些混乱，这个subplot是根据feature_extraction获得了特征数据之后，才可以生成这个subplot的数据
 
+        feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
         #feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file,merged_history_file)
 
@@ -76,7 +76,7 @@ def call_predict_model_func(flag=False):
 
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
-    call_feature_extraction_func()
+    call_data_preprocessing_func()
+    call_feature_extraction_func(flag=True)
     call_predict_model_func()
 
