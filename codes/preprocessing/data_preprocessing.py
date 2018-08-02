@@ -21,7 +21,6 @@ def trans_alarm_date(date_str):
 def process_raw_data(origin_dir, output_dir):
 
     f_list = os.listdir(origin_dir)
-    num = 0
     for i in f_list:  ##每个log文件
         if os.path.splitext(i)[1] == '.log':
             file_name = os.path.join(output_dir, os.path.splitext(i)[0] + '.csv')
@@ -47,9 +46,6 @@ def process_raw_data(origin_dir, output_dir):
                 df = pd.DataFrame(data_list)
                 print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
-            num += 1
-            if(num > 1):
-                break
     print('process raw data finished!')
 
 #只获取时间、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
