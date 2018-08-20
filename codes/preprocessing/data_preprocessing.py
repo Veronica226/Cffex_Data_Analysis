@@ -41,10 +41,10 @@ def process_raw_data(origin_dir, output_dir):
                         data_list.append(json.loads(hour_data))  # json list
                         # print(hour_data)
                 #print(data_list)
-                print(list(data_list[0].keys()))
+                #print(list(data_list[0].keys()))
 
                 df = pd.DataFrame(data_list)
-                print(df.shape)
+                #print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
     print('process raw data finished!')
 
@@ -253,6 +253,9 @@ def process_alarm_data(host_alarm_dir, output_dir):
     data_processed = data['alarm_str'].str.split('[|]+',expand = True)
     #插入列标题
     data_processed.columns = ['node_name', 'node_alias', 'component', 'category', 'alarm_count', 'first_time', 'last_time', 'alarm_level', 'alarm_content']
+    # 先都变成小写字母，防止大写字母主机和小写字母主机不同
+    data_processed['node_alias'] = data_processed['node_alias'].apply(str.lower)
+    data_processed.to_csv(os.path.join(host_alarm_dir,"cffex-host-alarm-processed.csv"), sep=',', index=False)
     #TODO：进行'component'字段的处理
 
     #将'component'字段提取出来作为一个DataFrame
@@ -283,6 +286,7 @@ def process_alarm_data(host_alarm_dir, output_dir):
     data_node_alias = data_processed[['node_alias']].copy()
     #去掉重复数据
     data_node_alias_processed = data_node_alias.drop_duplicates()
+    print('node alias list shape: ', data_node_alias_processed.shape[0])
     #插入id列，编号从1开始
     data_node_alias_processed['id'] = range(1,len(data_node_alias_processed) + 1)
     #将列顺序调整为['id', 'node_alias']
@@ -316,10 +320,32 @@ def process_alarm_data(host_alarm_dir, output_dir):
     #调用替换函数
     data_processed['alarm_content'] = data_processed['alarm_content'].apply(re_replace)
     #将处理后结果写入'cffex-host-alarm-processed.csv'（不带行标签，utf-8编码）
-    data_processed.to_csv(host_alarm_processed_dir, index = 0, encoding = 'utf-8')
+    data_processed.to_csv(host_alarm_processed_dir, index = False, encoding = 'utf-8')
     print('process alarm raw data finished!')
 #END 'cffex-host-alarm.csv' process code
 
 
+###jhljx
+def genereate_host_event_sets(host_alarm_file_path, output_dir):
+    df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
+    print('shape = ', df_alarm.shape)
 
+    print(df_alarm.groupby(['node_alias']).size())
+    for host_name_index, df_host_alarm in df_alarm.groupby(['node_alias']):
+        host_name = host_name_index.lower()
+        print('host name is {0}'.format(host_name))
+        output_host_dir = os.path.join(output_dir, host_name)
+        if not os.path.exists(output_host_dir):
+            os.makedirs(output_host_dir)
+        df_host_alarm['last_time'] = df_host_alarm['last_time'].apply(lambda x: datetime.strptime(trans_alarm_date(x), '%Y-%m-%d %H:%M:%S'))
+        df_host_alarm = df_host_alarm.sort_values(by=['last_time'])
+        output_file_path = os.path.join(output_host_dir, host_name + '_events.csv')
+        df_host_alarm.to_csv(output_file_path, sep=',', index=False)
 
+def generate_alarm_level_content(host_alarm_file_path, output_dir):
+    df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
+    df_alarm = df_alarm[['alarm_level', 'alarm_content']]
+    for alarm_level, df_alarm_level in df_alarm.groupby(['alarm_level']):
+        df_alarm_level = df_alarm_level.drop_duplicates()
+        output_file_path = os.path.join(output_dir, alarm_level + '_events.csv')
+        df_alarm_level.to_csv(output_file_path, sep=',', index=False)
