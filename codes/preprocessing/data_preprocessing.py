@@ -225,6 +225,36 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
 
 
+#简单方法：告警事件文件中直接剔除ping告警数据
+def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
+    data = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data1 = data[data['alarm_content'] != '36']
+    print(data1)
+    data2 = data1[data1['alarm_content'] != '37']
+    data3 = data2[data2['alarm_content'] != '38']
+    data3.to_csv(deleted_alarm_data_file, sep=',', index=False)
+
+def fix_ping_data(alarm_data_file, raw_alarm_data_file, fixed_alarm_data_file):
+    data1 = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data2 = pd.read_csv(raw_alarm_data_file, encoding= 'gbk',sep=',', dtype=str)
+    index_list = data1[data1['alarm_content'] == '36'].index.tolist()
+    index_list2 = data1[data1['alarm_content'] == '37'].index.tolist()
+    index_list3 = data1[data1['alarm_content'] == '38'].index.tolist()
+    index_list.extend(index_list2)
+    index_list.extend(index_list3)
+    index_list.sort()
+    print(index_list)   #list为平告警事件的索引值列表
+
+    for i in index_list:
+
+        data1.iloc(i,'node_alias') =
+
+
+
+
+
+
+
 ######################################################################################
 #Author: 普俊韬
 
