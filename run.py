@@ -33,6 +33,7 @@ def call_data_preprocessing_func(flag=False):
 
         alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
+        alarm_out_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")
 
         # #处理原始告警数据
         # data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -49,10 +50,10 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.delete_ping_data(alarm_processed_file,deleted_alarm_processed_file)
 
         #修改ping告警事件对应的主机名
-        # data_preprocessing.fix_ping_data(alarm_processed_file,raw_alarm_processed_file,fixed_alarm_data_file)
+        # data_preprocessing.fix_ping_data(alarm_processed_file,raw_alarm_processed_file,node_alias_file,fixed_alarm_data_file)
         #
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        # data_preprocessing.generate_alarm_data(deleted_alarm_processed_file, node_alias_file, alarm_out_file)
+        data_preprocessing.generate_alarm_data(fixed_alarm_data_file, node_alias_file, alarm_out_file_fixed)
 
         #处理原始告警数据
         #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -76,9 +77,11 @@ def call_feature_extraction_func(flag=False):
     if(flag):
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
         alarm_file = os.path.join(predict_data_dir, 'alarm_data.csv')
+        alarm_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")
         merged_data_file = os.path.join(predict_data_dir, "merged_data.csv")
         history_data_file = os.path.join(predict_data_dir, "history_data.csv")
-        merged_history_file =os.path.join(predict_data_dir, "merged_history_data.csv")
+        merged_history_file =os.path.join(predict_data_dir, "merged_history_data.csv")    #删掉ping数据
+        merged_fixed_file = os.path.join(predict_data_dir, "merged_fixed_data.csv")      #修改ping数据对应的正确主机
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
         # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
@@ -91,7 +94,7 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file,merged_history_file)
+        feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file_fixed,merged_fixed_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -101,9 +104,10 @@ def call_predict_model_func(flag=False):
         merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
         model_save_file = os.path.join(predict_data_dir,"model_save.csv")
         merged_history_file = os.path.join(predict_data_dir, "merged_history_data.csv")
+        merged_fixed_file = os.path.join(predict_data_dir, "merged_fixed_data.csv")
 
         #包含若干分类器的预测模型
-        predict_model.classifiers_for_prediction(merged_history_file, model_save_file,history_predict_proba_file)
+        predict_model.classifiers_for_prediction(merged_fixed_file, model_save_file,history_predict_proba_file)
 
 
 if __name__ == '__main__':
