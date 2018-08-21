@@ -4,7 +4,7 @@ import pandas as pd
 
 from codes.preprocessing import data_preprocessing
 from codes.feature_engineering import feature_extraction
-# from codes.model import predict_model
+from codes.model import predict_model
 from settings import *
 import os
 
@@ -22,20 +22,18 @@ host_alarm_dir = os.path.join(base_dir,"raw_data","cffex-host-alarm")
 def call_data_preprocessing_func(flag=False):
     if(flag):
         alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
-<<<<<<< HEAD
+
         deleted_alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_deleted.csv')
         fixed_alarm_data_file =  os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_fixed.csv')
         raw_alarm_processed_file =  os.path.join(origin_alarm_data_dir, 'cffex-host-alarm-processed.csv')
 
-=======
         alarm_origin_file = os.path.join(raw_data_dir, 'cffex-host-alarm', 'cffex-host-alarm-processed.csv')
->>>>>>> 361978e1a88032ae9229b2c76d144b13ad36e8fd
+
         node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
 
         alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
 
-<<<<<<< HEAD
         # #处理原始告警数据
         # data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
         # # 处理原始数据，将json格式的原始log文件数据解析为dataframe格式的csv文件数据
@@ -51,12 +49,11 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.delete_ping_data(alarm_processed_file,deleted_alarm_processed_file)
 
         #修改ping告警事件对应的主机名
-        data_preprocessing.fix_ping_data(alarm_processed_file,raw_alarm_processed_file,fixed_alarm_data_file)
+        # data_preprocessing.fix_ping_data(alarm_processed_file,raw_alarm_processed_file,fixed_alarm_data_file)
         #
-        # # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        # data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
+        # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
+        # data_preprocessing.generate_alarm_data(deleted_alarm_processed_file, node_alias_file, alarm_out_file)
 
-=======
         #处理原始告警数据
         #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
         # 处理原始数据，将json格式的原始log文件数据解析为dataframe格式的csv文件数据
@@ -69,10 +66,10 @@ def call_data_preprocessing_func(flag=False):
         #data_preprocessing.insert_missing_data(plot_data_dir, plot_data_dir) #测试一下
         # 将告警数据只存储主机名、时间和事件（bool标记）
         #data_preprocessing.generate_alarm_data(alarm_processed_file, node_alias_file, alarm_out_file)
+        #
+        # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
+        # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
 
-        data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
-        data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
->>>>>>> 361978e1a88032ae9229b2c76d144b13ad36e8fd
 
 #调用特征提取的函数
 def call_feature_extraction_func(flag=False):
@@ -84,16 +81,17 @@ def call_feature_extraction_func(flag=False):
         merged_history_file =os.path.join(predict_data_dir, "merged_history_data.csv")
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
-        feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
+        # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
 
         # 将predict_data中各主机的特征数据独立存储成csv文件，供matlab画图使用。在feature_extraction之后才会生成predict_data
         # generatesubplot实际上是用来获得Matlab画图的数据，获得了predict_data之后才可以执行这条语句
-        data_preprocessing.generate_subplot_data(predict_data, subplot_data_dir)
+        # data_preprocessing.generate_subplot_data(predict_data, subplot_data_dir)
 
         #获取时间序列的历史特征
-        #feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
+        # feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
+
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        #feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file,merged_history_file)
+        feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file,merged_history_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -109,7 +107,7 @@ def call_predict_model_func(flag=False):
 
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
+    call_data_preprocessing_func()
     call_feature_extraction_func()
-    call_predict_model_func()
+    call_predict_model_func(flag=True)
 
