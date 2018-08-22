@@ -87,8 +87,8 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     merged_df = pd.merge(feature_data_df, alarm_data_df, on=['hostname','archour'], how="left",left_index= False,right_index= False).fillna(0)
     #merge之后，有7997条告警数据，639199条非告警数据
     merged_df.to_csv(merged_data_file, sep=',', index=False)
-    #print(merged_df[merged_df['event']==0].shape)
-    #print(merged_df[merged_df['event'] == '1'].shape)
+    print(merged_df[merged_df['event']==0].shape)
+    print(merged_df[merged_df['event'] == '1'].shape)
 
 
 
@@ -113,6 +113,7 @@ def generate_history_feature(origin_dir, history_data_file):
                                    'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
                                    'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2'])
     print('host number = ', len(host_name_list))
+    print(host_name_list)
     for h_name in host_name_list:            #遍历每个主机对应的文件list
         file_list = host_name_file_dict[h_name]
         f_list = file_filter(file_list)   #筛选需要的文件
@@ -155,7 +156,7 @@ def generate_history_feature(origin_dir, history_data_file):
 
         df_all = pd.concat([df_all, df])   #连接当前主机的df数据到df_all中
         print(df_all)
-        break
+
     print('yes')
     print(df_all)
     df_all.to_csv(history_data_file, sep=',', index=False)

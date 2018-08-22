@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
+import string
 
 import pandas as pd
 import numpy as np
@@ -223,6 +224,60 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
         group.drop(['hostname'], axis=1, inplace=True)
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
+
+
+#简单方法：告警事件文件中直接剔除ping告警数据
+def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
+    data = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data1 = data[data['alarm_content'] != '36']
+    print(data1)
+    data2 = data1[data1['alarm_content'] != '37']
+    data3 = data2[data2['alarm_content'] != '38']
+    data3.to_csv(deleted_alarm_data_file, sep=',', index=False)
+
+def get_node_name_id(alarm_content, node_alias_file):
+    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
+    node_dict = dict(zip(df_node_alias['node_alias'],df_node_alias['id']))
+    node_name_list = df_node_alias['node_alias'].values.tolist()  #获取主机名list 都是大写的
+    ping_node_name_id = -1
+    for node_name in node_name_list:
+        if node_name.lower() in alarm_content:
+            print("node_name:"+ node_name.lower())
+            ping_node_name_id = node_dict[node_name]
+            print ("fixed node_name id:"+ ping_node_name_id)
+            break
+
+    return ping_node_name_id
+
+def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_alarm_data_file):
+    data1 = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data2 = pd.read_csv(raw_alarm_data_file, encoding= 'gbk',sep=',', dtype=str)
+    index_list = data1[data1['alarm_content'] == '36'].index.tolist()
+    index_list2 = data1[data1['alarm_content'] == '37'].index.tolist()
+    index_list3 = data1[data1['alarm_content'] == '38'].index.tolist()
+    index_list.extend(index_list2)
+    index_list.extend(index_list3)
+    index_list.sort()
+    print(index_list)   #list为平告警事件的索引值列表
+
+    #对所有ping事件的index进行修改
+    for i in index_list:
+        alarm_content = data2.iloc[i,8]
+        print("index:"+str(i)+":"+alarm_content)
+        ping_node_name_id = get_node_name_id(alarm_content,node_alias_file)
+        # print(ping_node_name_id)#获取ping所对应的主机名
+        data1.iloc[i,1]= ping_node_name_id   #修改ping对应的正确主机名的i的编号（对应dict
+
+
+    print(data1)
+    print(data1[data1['node_alias'] == -1].shape)
+    data = data1[data1['node_alias'] != -1]
+    data.to_csv(fixed_alarm_data_file, sep=',', index=False)
+
+
+
+
+
 
 
 ######################################################################################
