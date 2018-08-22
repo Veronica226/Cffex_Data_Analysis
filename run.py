@@ -9,9 +9,6 @@ from settings import *
 import os
 
 
-
-
-
 pre_dir = pre_data_dir
 raw_data_dir = os.path.join(base_dir, 'raw_data').replace('\\', '/')
 
