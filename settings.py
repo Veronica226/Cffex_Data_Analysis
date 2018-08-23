@@ -3,6 +3,7 @@ import os
 base_dir = os.getcwd()
 
 origin_data_dir = os.path.join(base_dir, "raw_data", "cffex-host-info")
+origin_alarm_data_dir = os.path.join(base_dir, "raw_data", "cffex-host-alarm")
 pre_data_dir = os.path.join(base_dir, "raw_data", "pre_data")
 
 output_dir = os.path.join(base_dir,"output_data")

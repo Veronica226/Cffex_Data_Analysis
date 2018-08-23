@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
+import string
 
 import pandas as pd
 import numpy as np
@@ -21,7 +22,6 @@ def trans_alarm_date(date_str):
 def process_raw_data(origin_dir, output_dir):
 
     f_list = os.listdir(origin_dir)
-    num = 0
     for i in f_list:  ##每个log文件
         if os.path.splitext(i)[1] == '.log':
             file_name = os.path.join(output_dir, os.path.splitext(i)[0] + '.csv')
@@ -42,10 +42,10 @@ def process_raw_data(origin_dir, output_dir):
                         data_list.append(json.loads(hour_data))  # json list
                         # print(hour_data)
                 #print(data_list)
-                print(list(data_list[0].keys()))
+                #print(list(data_list[0].keys()))
 
                 df = pd.DataFrame(data_list)
-                print(df.shape)
+                #print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
             num += 1
             # if(num > 1):
@@ -229,6 +229,60 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
 
 
+#简单方法：告警事件文件中直接剔除ping告警数据
+def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
+    data = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data1 = data[data['alarm_content'] != '36']
+    print(data1)
+    data2 = data1[data1['alarm_content'] != '37']
+    data3 = data2[data2['alarm_content'] != '38']
+    data3.to_csv(deleted_alarm_data_file, sep=',', index=False)
+
+def get_node_name_id(alarm_content, node_alias_file):
+    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
+    node_dict = dict(zip(df_node_alias['node_alias'],df_node_alias['id']))
+    node_name_list = df_node_alias['node_alias'].values.tolist()  #获取主机名list 都是大写的
+    ping_node_name_id = -1
+    for node_name in node_name_list:
+        if node_name.lower() in alarm_content:
+            print("node_name:"+ node_name.lower())
+            ping_node_name_id = node_dict[node_name]
+            print ("fixed node_name id:"+ ping_node_name_id)
+            break
+
+    return ping_node_name_id
+
+def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_alarm_data_file):
+    data1 = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data2 = pd.read_csv(raw_alarm_data_file, encoding= 'gbk',sep=',', dtype=str)
+    index_list = data1[data1['alarm_content'] == '36'].index.tolist()
+    index_list2 = data1[data1['alarm_content'] == '37'].index.tolist()
+    index_list3 = data1[data1['alarm_content'] == '38'].index.tolist()
+    index_list.extend(index_list2)
+    index_list.extend(index_list3)
+    index_list.sort()
+    print(index_list)   #list为平告警事件的索引值列表
+
+    #对所有ping事件的index进行修改
+    for i in index_list:
+        alarm_content = data2.iloc[i,8]
+        print("index:"+str(i)+":"+alarm_content)
+        ping_node_name_id = get_node_name_id(alarm_content,node_alias_file)
+        # print(ping_node_name_id)#获取ping所对应的主机名
+        data1.iloc[i,1]= ping_node_name_id   #修改ping对应的正确主机名的i的编号（对应dict
+
+
+    print(data1)
+    print(data1[data1['node_alias'] == -1].shape)
+    data = data1[data1['node_alias'] != -1]
+    data.to_csv(fixed_alarm_data_file, sep=',', index=False)
+
+
+
+
+
+
+
 ######################################################################################
 #Author: 普俊韬
 
@@ -257,6 +311,9 @@ def process_alarm_data(host_alarm_dir, output_dir):
     data_processed = data['alarm_str'].str.split('[|]+',expand = True)
     #插入列标题
     data_processed.columns = ['node_name', 'node_alias', 'component', 'category', 'alarm_count', 'first_time', 'last_time', 'alarm_level', 'alarm_content']
+    # 先都变成小写字母，防止大写字母主机和小写字母主机不同
+    data_processed['node_alias'] = data_processed['node_alias'].apply(str.lower)
+    data_processed.to_csv(os.path.join(host_alarm_dir,"cffex-host-alarm-processed.csv"), sep=',', index=False)
     #TODO：进行'component'字段的处理
 
     #将'component'字段提取出来作为一个DataFrame
@@ -287,6 +344,7 @@ def process_alarm_data(host_alarm_dir, output_dir):
     data_node_alias = data_processed[['node_alias']].copy()
     #去掉重复数据
     data_node_alias_processed = data_node_alias.drop_duplicates()
+    print('node alias list shape: ', data_node_alias_processed.shape[0])
     #插入id列，编号从1开始
     data_node_alias_processed['id'] = range(1,len(data_node_alias_processed) + 1)
     #将列顺序调整为['id', 'node_alias']
@@ -320,10 +378,32 @@ def process_alarm_data(host_alarm_dir, output_dir):
     #调用替换函数
     data_processed['alarm_content'] = data_processed['alarm_content'].apply(re_replace)
     #将处理后结果写入'cffex-host-alarm-processed.csv'（不带行标签，utf-8编码）
-    data_processed.to_csv(host_alarm_processed_dir, index = 0, encoding = 'utf-8')
+    data_processed.to_csv(host_alarm_processed_dir, index = False, encoding = 'utf-8')
     print('process alarm raw data finished!')
 #END 'cffex-host-alarm.csv' process code
 
 
+###jhljx
+def genereate_host_event_sets(host_alarm_file_path, output_dir):
+    df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
+    print('shape = ', df_alarm.shape)
 
+    print(df_alarm.groupby(['node_alias']).size())
+    for host_name_index, df_host_alarm in df_alarm.groupby(['node_alias']):
+        host_name = host_name_index.lower()
+        print('host name is {0}'.format(host_name))
+        output_host_dir = os.path.join(output_dir, host_name)
+        if not os.path.exists(output_host_dir):
+            os.makedirs(output_host_dir)
+        df_host_alarm['last_time'] = df_host_alarm['last_time'].apply(lambda x: datetime.strptime(trans_alarm_date(x), '%Y-%m-%d %H:%M:%S'))
+        df_host_alarm = df_host_alarm.sort_values(by=['last_time'])
+        output_file_path = os.path.join(output_host_dir, host_name + '_events.csv')
+        df_host_alarm.to_csv(output_file_path, sep=',', index=False)
 
+def generate_alarm_level_content(host_alarm_file_path, output_dir):
+    df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
+    df_alarm = df_alarm[['alarm_level', 'alarm_content']]
+    for alarm_level, df_alarm_level in df_alarm.groupby(['alarm_level']):
+        df_alarm_level = df_alarm_level.drop_duplicates()
+        output_file_path = os.path.join(output_dir, alarm_level + '_events.csv')
+        df_alarm_level.to_csv(output_file_path, sep=',', index=False)
