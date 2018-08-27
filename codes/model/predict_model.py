@@ -153,9 +153,11 @@ def generate_ROC_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    plt.show()
     roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_ROC_CURVE.png')
     fig.savefig(roc_plot_path, dpi=100)
+    plt.show()
+
+
 
 def generate_PR_plot(test_y, predict,classifier_name):
     precision, recall, thresholds = precision_recall_curve(test_y, predict)
@@ -166,9 +168,10 @@ def generate_PR_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('Recall')
     plt.xlabel('Precision')
-    plt.show()
+
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_PR_CURVE.png')
     fig.savefig(pr_plot_path, dpi=100)
+    plt.show()
 
 def generate_learning_curve(data_file,model,classifier_name):
     cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
@@ -187,9 +190,10 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.ylabel("Score")
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
-    plt.show()
+
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_learning-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
+    plt.show()
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
@@ -207,9 +211,10 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
     plt.ylabel("label")
     plt.legend(loc="best")
     plt.title(classifier_name + '- compared')
-    plt.show()
+
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
+    plt.show()
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
