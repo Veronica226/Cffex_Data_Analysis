@@ -198,7 +198,6 @@ def generate_learning_curve(data_file,model,classifier_name):
     fig.savefig(pr_plot_path, dpi=100)
     #plt.show()
 
-
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
     train_scores_mean = np.mean(train_scores, axis=1)
@@ -217,6 +216,7 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
     plt.ylabel("label")
     plt.legend(loc="best")
     plt.title(classifier_name + '- compared')
+
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
     #plt.show()

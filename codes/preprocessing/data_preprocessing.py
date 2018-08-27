@@ -274,7 +274,57 @@ def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_al
     data = data1[data1['node_alias'] != -1]
     data.to_csv(fixed_alarm_data_file, sep=',', index=False)
 
+#根据alarm content内的主机对告警事件内容进行分组，并检查ping事件是否与主机异常相关联
+def check_ping_alarm_data(fixed_alarm_data_file, final_alarm_data_file):
+    data = pd.read_csv(fixed_alarm_data_file, sep=',', dtype=str)
+    drop_index_list = []  #存储要删除的indexlist
+    for node_alias,group in data.groupby('node_alias'):   #每个主机的dataFrame
+        print('node_alias:'+str(node_alias))
+        print(group)
+        index_list = group.index.tolist()
+        print('index_list:')
+        print(index_list)
 
+        group1 = group[group['alarm_content'] != '36']
+        group2 = group1[group1['alarm_content'] != '37']
+        group3 = group2[group2['alarm_content'] != '38']
+        time_list = group3['last_time'].tolist()
+        print('other time list:')
+        print(time_list)   #获取非ping告警的时间list
+
+        cnt = 0
+        for i in index_list:     #遍历index
+            alarm_content=group.iloc[cnt,8]
+            if (alarm_content == '36') or (alarm_content == '37') or (alarm_content == '38'):  #判断是否是ping告警事件
+                time = group.iloc[cnt,6]    #获取时间
+                flag = find_close_alarm(time_list,time) #寻找是否是主机异常引起的ping事件
+                print(flag)
+                if flag == 0:      #如果没找到 则为网络异常引起的ping
+                    drop_index_list.append(i)    #将此条ping事件的index添加到要删除的indexlist中
+                    print('delete index: '+str(i))
+            cnt = cnt+1
+
+    print('drop_index_list:')
+    print(drop_index_list)
+    print(len(drop_index_list))
+    data.drop(drop_index_list,inplace=True)   #删除要删掉的index数据
+    print(data)
+    data.to_csv(final_alarm_data_file, sep=',', index=False)
+
+#查找三十分钟内是否有主机告警
+def find_close_alarm(time_list,time):
+    new_time_list = map(lambda x: datetime.strptime(x, '%Y%m%d %H:%M:%S'), time_list)
+    new_time  = datetime.strptime(time,  '%Y%m%d %H:%M:%S')
+    flag = 0
+    for i in new_time_list:
+        if new_time > i:
+            time_delta = (new_time - i).seconds #计算时间差
+        else:
+            time_delta = (i - new_time).seconds
+        if  time_delta < 1800:   #30分钟之内
+            flag = 1
+        break
+    return  flag
 
 
 
