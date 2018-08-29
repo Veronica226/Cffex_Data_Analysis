@@ -18,7 +18,7 @@ def generate_feature_by_hostname(origin_dir, out_file):
     host_name_list = host_name_file_dict.keys()
     df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
                                     'boot_max', 'boot_min','home_max', 'home_min',
-                                   'monitor_max', 'monitor_min','rt_max', 'rt_min',
+                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
                                     'tmp_max', 'tmp_min','mem_max', 'mem_min'])
     print('host number = ', len(host_name_list))
     for h_name in host_name_list:            #遍历每个主机对应的文件list

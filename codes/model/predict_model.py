@@ -148,6 +148,8 @@ def read_data(data_file,split):
         return feature_data, label_data
 
 def generate_ROC_plot(test_y, predict,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     FP, TP, thresholds = roc_curve(test_y, predict)
     ROC_auc = auc(FP, TP)
     fig = plt.figure()
@@ -161,11 +163,12 @@ def generate_ROC_plot(test_y, predict,classifier_name):
     plt.xlabel('False Positive Rate')
     roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + 'nocpu_ROC_CURVE.png')
     fig.savefig(roc_plot_path, dpi=100)
-    plt.show()
-
+    #plt.show()
 
 
 def generate_PR_plot(test_y, predict,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     precision, recall, thresholds = precision_recall_curve(test_y, predict)
     fig = plt.figure()
     plt.title(classifier_name+'- PR CURVE')
@@ -174,12 +177,13 @@ def generate_PR_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('Recall')
     plt.xlabel('Precision')
-
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_PR_CURVE.png')
     fig.savefig(pr_plot_path, dpi=100)
-    plt.show()
+    #plt.show()
 
 def generate_learning_curve(data_file,model,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
     X, Y = read_data(data_file, split=False)
     print('start drawing...')
@@ -196,10 +200,9 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.ylabel("Score")
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
-
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_learning-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
-    plt.show()
+    #plt.show()
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
@@ -207,6 +210,8 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, tra
     test_scores_mean = np.mean(test_scores, axis=1)
 
 def generate_compared_curve(test_y,predict_proba,classifier_name):
+    if not os.path.exists(metric_figures_dir):
+        os.makedirs(metric_figures_dir)
     fig = plt.figure()
     test_y = test_y[1:50]
     predict_proba = predict_proba[1:50]
@@ -220,7 +225,7 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
 
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
-    plt.show()
+    #plt.show()
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
@@ -257,10 +262,12 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
             model_save[classifier] = model
 
         generate_ROC_plot(test_y, predict_proba, classifier)
+
         # generate_PR_plot(test_y, predict_proba, classifier)
         # generate_learning_curve(data_file, model, classifier)
         #
         # generate_compared_curve(test_y,predict_proba,classifier)
+
 
         predict_proba[predict_proba >= 0.5] = 1
         predict_proba[predict_proba < 0.5] = 0
