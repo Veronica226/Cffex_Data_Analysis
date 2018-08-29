@@ -89,6 +89,14 @@ def call_feature_extraction_func(flag=False):
         merged_history_file =os.path.join(predict_data_dir, "merged_history_data.csv")    #删掉ping数据
         merged_fixed_file = os.path.join(predict_data_dir, "merged_fixed_data.csv")      #修改ping数据对应的正确主机
         merged_final_file = os.path.join(predict_data_dir, "merged_final_data.csv")
+        no_cpu_file = os.path.join(predict_data_dir, "no_cpu_data.csv")
+        no_disk_file = os.path.join(predict_data_dir, "no_disk_data.csv")
+        no_mem_file = os.path.join(predict_data_dir, "no_mem_data.csv")
+        cpu_only_file = os.path.join(predict_data_dir, "cpu_only_data.csv")
+        disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
+        mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
+
+
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
         # feature_extraction.generate_feature_by_hostname(plot_data_dir, predict_data)
@@ -101,7 +109,10 @@ def call_feature_extraction_func(flag=False):
         #feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file_final,merged_final_file)
+        # feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file_final,merged_final_file)
+
+        #保留部分特征
+        feature_extraction.delete_feature(merged_final_file,no_disk_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -112,13 +123,37 @@ def call_predict_model_func(flag=False):
         model_save_file = os.path.join(predict_data_dir,"model_save.csv")
         merged_history_file = os.path.join(predict_data_dir, "merged_history_data.csv")
         merged_fixed_file = os.path.join(predict_data_dir, "merged_fixed_data.csv")
+        no_cpu_file = os.path.join(predict_data_dir, "no_cpu_data.csv")
+        no_disk_file = os.path.join(predict_data_dir, "no_disk_data.csv")
+        no_mem_file = os.path.join(predict_data_dir, "no_mem_data.csv")
+        cpu_only_file = os.path.join(predict_data_dir, "cpu_only_data.csv")
+        disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
+        mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
+
+
 
         #包含若干分类器的预测模型
-        predict_model.classifiers_for_prediction(merged_fixed_file, model_save_file,history_predict_proba_file)
+        print('no cpu')
+        predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
+        # print('no disk')
+        # predict_model.classifiers_for_prediction(no_disk_file, model_save_file,history_predict_proba_file)
+        # print('no mem')
+        # predict_model.classifiers_for_prediction(no_mem_file, model_save_file,history_predict_proba_file)
+        # print('only cpu')
+        # predict_model.classifiers_for_prediction(cpu_only_file, model_save_file,history_predict_proba_file)
+        # print('only disk')
+        # predict_model.classifiers_for_prediction(disk_only_file, model_save_file,history_predict_proba_file)
+        # print('only mem')
+        # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
+
+
+
+
+
 
 
 if __name__ == '__main__':
     call_data_preprocessing_func()
-    call_feature_extraction_func(flag=True)
-    call_predict_model_func()
+    call_feature_extraction_func()
+    call_predict_model_func(flag=True)
 

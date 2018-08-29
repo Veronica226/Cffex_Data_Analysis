@@ -98,17 +98,23 @@ def read_data(data_file,split):
     #                                 'boot_max', 'boot_min','home_max', 'home_min',
     #                                'monitor_max', 'monitor_min','rt_max', 'rt_min',
     #                                 'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
-
-    data = pd.read_csv(data_file, sep=',', usecols=['cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+    # 创建空dataframe 存放merge之后的数据
+    data = pd.read_csv(data_file, sep=',', usecols=[#'cpu_max', 'cpu_min',
                                                     'boot_max', 'boot_min', 'home_max', 'home_min',
                                                     'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
-                                                     'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
-                                                      'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
-                                                     'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
-                                                      'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
-                                                      'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
-                                                     'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2','event'], dtype=np.float64)
+                                                    'tmp_max', 'tmp_min',
+                                                      'mem_max', 'mem_min',
+                                                     # 'cpu_max_1', 'cpu_min_1',
+                                                    'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+                                                    'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+                                                    'tmp_max_1', 'tmp_min_1',
+                                                     'mem_max_1', 'mem_min_1',
+                                                     # 'cpu_max_2', 'cpu_min_2',
+                                                    'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+                                                    'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+                                                    'tmp_max_2', 'tmp_min_2',
+                                                      'mem_max_2', 'mem_min_2',
+                                                    'event'], dtype=np.float64)
 
     # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
     # test = data[int(len(data) * 0.8):]
@@ -153,7 +159,7 @@ def generate_ROC_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_ROC_CURVE.png')
+    roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + 'nocpu_ROC_CURVE.png')
     fig.savefig(roc_plot_path, dpi=100)
     plt.show()
 
@@ -219,7 +225,11 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['GBDT','KNN','LR','RF','DT']
+    test_classifiers_list = ['GBDT',
+                              'KNN',
+                             'LR',
+                             'RF',
+                             'DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -247,15 +257,16 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
             model_save[classifier] = model
 
         generate_ROC_plot(test_y, predict_proba, classifier)
-        generate_PR_plot(test_y, predict_proba, classifier)
-        generate_learning_curve(data_file, model, classifier)
-
-        generate_compared_curve(test_y,predict_proba,classifier)
+        # generate_PR_plot(test_y, predict_proba, classifier)
+        # generate_learning_curve(data_file, model, classifier)
+        #
+        # generate_compared_curve(test_y,predict_proba,classifier)
 
         predict_proba[predict_proba >= 0.5] = 1
         predict_proba[predict_proba < 0.5] = 0
         predict_proba = predict_proba.astype(np.int64)
         #print(predict_proba)
+
         precision = metrics.precision_score(test_y, predict_proba)
         recall = metrics.recall_score(test_y, predict_proba)
         fbetascore = fbeta_score(test_y, predict_proba, 0.5)
@@ -265,6 +276,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         print('accuracy: %.6f%%' % (100 * accuracy))
         print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
         print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+
         # np.savetxt(predict_proba_file,predict_proba)
 
         # generate_ROC_plot(test_y, predict_proba,classifier)

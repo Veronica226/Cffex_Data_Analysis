@@ -90,8 +90,6 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     print(merged_df[merged_df['event']==0].shape)
     print(merged_df[merged_df['event'] == '1'].shape)
 
-
-
 def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
     host_name_file_dict = {}
@@ -163,7 +161,29 @@ def generate_history_feature(origin_dir, history_data_file):
     print(df_all.shape)  #643560*44
     print('done')
 
-
+#去掉部分特征，只保留一种特征或两种特征
+def delete_feature(origin_file, output_file):
+    data = pd.read_csv(origin_file, sep=',', dtype = str)
+    print(data)
+    #要去掉的特征list
+    drop_column_list =[#'cpu_max', 'cpu_min',
+                      'boot_max', 'boot_min', 'home_max', 'home_min',
+                      'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                      'tmp_max', 'tmp_min',
+                      # 'mem_max', 'mem_min',
+                      #  'cpu_max_1', 'cpu_min_1',
+                      'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+                      'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+                      'tmp_max_1', 'tmp_min_1',
+                      # 'mem_max_1', 'mem_min_1',
+                      #   'cpu_max_2', 'cpu_min_2',
+                      'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+                      'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+                      'tmp_max_2', 'tmp_min_2']
+                      # 'mem_max_2', 'mem_min_2']
+    data.drop(drop_column_list,axis=1,inplace=True)
+    print(data)
+    data.to_csv(output_file,sep=',',index=None)
 
 
 
