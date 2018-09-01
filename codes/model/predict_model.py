@@ -230,9 +230,9 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['GBDT',
-                              'KNN',
-                             'LR',
+    test_classifiers_list = [#'GBDT',
+                             #  'KNN',
+                             # 'LR',
                              'RF',
                              'DT']
     classifiers = {'NB': naive_bayes_classifier,
@@ -274,6 +274,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         predict_proba = predict_proba.astype(np.int64)
         #print(predict_proba)
 
+#change later
         precision = metrics.precision_score(test_y, predict_proba)
         recall = metrics.recall_score(test_y, predict_proba)
         fbetascore = fbeta_score(test_y, predict_proba, 0.5)
