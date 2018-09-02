@@ -5,6 +5,7 @@ import pandas as pd
 from codes.preprocessing import data_preprocessing
 from codes.feature_engineering import feature_extraction
 from codes.model import predict_model
+from codes.clustering import level_division
 from settings import *
 import os
 
@@ -70,9 +71,6 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-
-
-
 
 #调用特征提取的函数
 def call_feature_extraction_func(flag=False):
@@ -144,6 +142,8 @@ def call_predict_model_func(flag=False):
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
 
 
+def call_level_division_func(flag=False):
+    if(flag):
 
 
 
