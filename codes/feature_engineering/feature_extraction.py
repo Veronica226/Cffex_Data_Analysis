@@ -135,22 +135,26 @@ def generate_history_feature(origin_dir, history_data_file):
                                    'boot_max', 'boot_min', 'home_max', 'home_min',
                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][1:-1]     #前一个小时的特征
-        df_2hour_before = df[[ 'cpu_max', 'cpu_min',
-                                   'boot_max', 'boot_min', 'home_max', 'home_min',
-                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][0:-2]    #前两个小时的特征
+        df_2hour_before = df[['cpu_max', 'cpu_min',
+                              'boot_max', 'boot_min', 'home_max', 'home_min',
+                              'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                              'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][0:-2]  # 前一个小时的特征
+
         df_1hour_before.columns = ['cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
                                    'home_max_1', 'home_min_1','monitor_max_1', 'monitor_min_1',
                                    'rt_max_1', 'rt_min_1','tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1']
         df_2hour_before.columns = ['cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
                                    'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
                                    'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2']
+
+
         df_1hour_before = df_1hour_before.reset_index(drop=True)    #重置索引列
 
         df = df.loc[2:] #从第三个时刻开始算起，去掉前两个时刻，从而构造时间窗口
         df = df.reset_index(drop=True)
         df = df.join(df_1hour_before,how = 'outer')
         df = df.join(df_2hour_before,how = 'outer')
+
 
         df_all = pd.concat([df_all, df])   #连接当前主机的df数据到df_all中
         print(df_all)
@@ -184,6 +188,128 @@ def delete_feature(origin_file, output_file):
     data.drop(drop_column_list,axis=1,inplace=True)
     print(data)
     data.to_csv(output_file,sep=',',index=None)
+
+
+#生成聚类所使用的数据，为所有有告警的kpi数据及当前时刻六小时内的kpi数据，以及告警类型
+def generate_cluster_data():
+    pass
+
+def generate_cluster_history_data(origin_dir, cluster_history_data_file):
+    f_list = os.listdir(origin_dir)  # csv list
+    host_name_file_dict = {}
+    for file_name in f_list:
+        host_name = get_host_name(file_name)
+        # print (file_name)#创建host_name 对应的dict 每个host包含多个文件
+        host_name_file_dict[host_name] = host_name_file_dict.get(host_name, [])
+        host_name_file_dict[host_name].append(file_name)
+    # 这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
+    host_name_list = host_name_file_dict.keys()
+
+    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+                                   'boot_max', 'boot_min', 'home_max', 'home_min',
+                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
+                                   'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
+                                   'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
+                                   'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
+                                   'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
+                                   'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
+                                   'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2',
+                                   'cpu_max_3', 'cpu_min_3', 'boot_max_3', 'boot_min_3',
+                                   'home_max_3', 'home_min_3', 'monitor_max_3', 'monitor_min_3',
+                                   'rt_max_3', 'rt_min_3', 'tmp_max_3', 'tmp_min_3', 'mem_max_3', 'mem_min_3',
+                                   'cpu_max_4', 'cpu_min_4', 'boot_max_4', 'boot_min_4',
+                                   'home_max_4', 'home_min_4', 'monitor_max_4', 'monitor_min_4',
+                                   'rt_max_4', 'rt_min_4', 'tmp_max_4', 'tmp_min_4', 'mem_max_4', 'mem_min_4',
+                                   'cpu_max_5', 'cpu_min_5', 'boot_max_5', 'boot_min_5',
+                                   'home_max_5', 'home_min_5', 'monitor_max_5', 'monitor_min_5',
+                                   'rt_max_5', 'rt_min_5', 'tmp_max_5', 'tmp_min_5', 'mem_max_5', 'mem_min_5'
+                                   ])
+    print('host number = ', len(host_name_list))
+    print(host_name_list)
+    for h_name in host_name_list:            #遍历每个主机对应的文件list
+        file_list = host_name_file_dict[h_name]
+        f_list = file_filter(file_list)   #筛选需要的文件
+        print (h_name)
+        df = pd.DataFrame(columns = ['hostname','archour'])
+        idx = 0
+        for f_name in f_list:    #遍历筛选之后的文件
+            prefix = str(get_prefix(f_name))    #获取对应的部件作为前缀
+            file_path = os.path.join(origin_dir, f_name)
+            data = pd.read_csv(file_path, sep=',', dtype=str, header=None,index_col=None)  #header=None设置列名为空，自动用0开头的数字替代
+            data.columns = ['archour',prefix+ '_max', prefix+'_min']  #列名
+            if(idx == 0):
+                df = pd.merge(df, data, how='outer', on=['archour'])
+                idx = 1
+            else:
+                df = pd.merge(df, data, on=['archour'])  #通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
+            # print (df)
+        df['hostname'] = h_name
+        #单个主机的特征矩阵，还未连接到df_all中
+        df_1hour_before = df[[ 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+                                   'boot_max', 'boot_min', 'home_max', 'home_min',
+                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][4:-1]     #前一个小时的特征
+        df_2hour_before = df[[ 'cpu_max', 'cpu_min',
+                                   'boot_max', 'boot_min', 'home_max', 'home_min',
+                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][3:-2]    #前两个小时的特征
+        df_3hour_before = df[['cpu_max', 'cpu_min',
+                              'boot_max', 'boot_min', 'home_max', 'home_min',
+                              'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                              'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][2:-3]  # 前一个小时的特征
+        df_4hour_before = df[['cpu_max', 'cpu_min',
+                              'boot_max', 'boot_min', 'home_max', 'home_min',
+                              'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                              'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][1:-4]  # 前一个小时的特征
+        df_5hour_before = df[['cpu_max', 'cpu_min',
+                              'boot_max', 'boot_min', 'home_max', 'home_min',
+                              'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                              'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][0:-5]  # 前两个小时的特征
+
+        df_1hour_before.columns = ['cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
+                                   'home_max_1', 'home_min_1','monitor_max_1', 'monitor_min_1',
+                                   'rt_max_1', 'rt_min_1','tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1']
+        df_2hour_before.columns = ['cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
+                                   'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
+                                   'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2']
+        df_3hour_before.columns = ['cpu_max_3', 'cpu_min_3', 'boot_max_3', 'boot_min_3',
+                                   'home_max_3', 'home_min_3', 'monitor_max_3', 'monitor_min_3',
+                                   'rt_max_3', 'rt_min_3', 'tmp_max_3', 'tmp_min_3', 'mem_max_3', 'mem_min_3']
+        df_4hour_before.columns = ['cpu_max_4', 'cpu_min_4', 'boot_max_4', 'boot_min_4',
+                                   'home_max_4', 'home_min_4', 'monitor_max_4', 'monitor_min_4',
+                                   'rt_max_4', 'rt_min_4', 'tmp_max_4', 'tmp_min_4', 'mem_max_4', 'mem_min_4']
+        df_5hour_before.columns = ['cpu_max_5', 'cpu_min_5', 'boot_max_5', 'boot_min_5',
+                                   'home_max_5', 'home_min_5', 'monitor_max_5', 'monitor_min_5',
+                                   'rt_max_5', 'rt_min_5', 'tmp_max_5', 'tmp_min_5', 'mem_max_5', 'mem_min_5']
+        df_1hour_before = df_1hour_before.reset_index(drop=True)    #重置索引列
+        df_2hour_before = df_2hour_before.reset_index(drop=True)
+        df_3hour_before = df_3hour_before.reset_index(drop=True)
+        df_4hour_before = df_4hour_before.reset_index(drop=True)
+        df_5hour_before = df_5hour_before.reset_index(drop=True)
+
+
+
+        df = df.loc[5:] #从第三个时刻开始算起，去掉前两个时刻，从而构造时间窗口
+        df = df.reset_index(drop=True)
+        df = df.join(df_1hour_before,how = 'outer')
+        df = df.join(df_2hour_before,how = 'outer')
+        df = df.join(df_3hour_before, how='outer')
+        df = df.join(df_4hour_before,how = 'outer')
+        df = df.join(df_5hour_before, how='outer')
+
+        df_all = pd.concat([df_all, df])   #连接当前主机的df数据到df_all中
+        print(df_all)
+
+    print('yes')
+    print(df_all)
+    df_all.to_csv(cluster_history_data_file, sep=',', index=False)
+    print(df_all.shape)  #643560*44
+    print('done')
+
+# def generate_cluster_merge_data(,cluster_merge_data_file):
+#     pass
+
 
 
 
