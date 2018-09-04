@@ -91,7 +91,10 @@ def call_feature_extraction_func(flag=False):
         cpu_only_file = os.path.join(predict_data_dir, "cpu_only_data.csv")
         disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
+
         cluster_history_data_file = os.path.join(cluster_data_dir, "cluster_history_data.csv")
+        alarm_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
+        cluster_series_data_file= os.path.join(cluster_data_dir, "cluster_series_data.csv")
 
 
 
@@ -112,7 +115,9 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.delete_feature(merged_final_file,no_disk_file)
 
         #生成聚类所用的特征历史数据
-        feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
+        # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
+
+        feature_extraction.generate_cluster_data(cluster_history_data_file,alarm_file_cluster,cluster_series_data_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -132,9 +137,9 @@ def call_predict_model_func(flag=False):
 
 
 
-        #包含若干分类器的预测模型
-        print('no cpu')
-        predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
+        # #包含若干分类器的预测模型
+        # print('no cpu')
+        # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
         # print('no disk')
         # predict_model.classifiers_for_prediction(no_disk_file, model_save_file,history_predict_proba_file)
         # print('no mem')
@@ -149,14 +154,17 @@ def call_predict_model_func(flag=False):
 
 def call_level_division_func(flag=False):
     if(flag):
+        cluster_series_data_file =os.path.join(cluster_data_dir, "cluster_series_data.csv")
         # level_division.hierarchical_clusterting()
-        pass
+        # level_division.get_cluster_data(cluster_series_data_file)
+        level_division.hierarchical_clusterting(cluster_series_data_file,3)
 
 
 
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
+    call_data_preprocessing_func()
     call_feature_extraction_func()
     call_predict_model_func()
+    call_level_division_func(flag=True)
 

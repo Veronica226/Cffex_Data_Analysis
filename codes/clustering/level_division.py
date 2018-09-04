@@ -1,5 +1,9 @@
+import random
 from itertools import starmap
-from math import *
+import math
+
+import pandas as pd
+import numpy as np
 from numpy import array, zeros, argmin, inf, equal, ndim
 from sklearn.metrics.pairwise import manhattan_distances
 import matplotlib.pyplot as plt
@@ -37,8 +41,8 @@ class bicluster:
 
 def child(clust):
     if clust.left == None and clust.right == None :
-        print(clust.id)
-        return [clust.id]
+        # print(clust.level)
+        return [clust.alarm_category]
     return child(clust.left) + child(clust.right)
 
 def DTW(s1,s2):
@@ -56,16 +60,64 @@ def DTW(s1,s2):
         for j in range(c):
             D1[i, j] += min(D0[i, j], D0[i, j + 1], D0[i + 1, j])
     distance = D1[-1,-1]
-    print(D1) # 累积距离矩阵
-    print(distance) # 序列距离
+    # print(D1) # 累积距离矩阵
+    # print(distance) # 序列距离
     return distance
 
+def Pearson(s1,s2):
+    s1_mean = np.mean(s1)
+    s2_mean = np.mean(s2)
+    n = len(s1)
+    sumTop = 0.0
+    sumBottom = 0.0
+    s1_pow = 0.0
+    s2_pow = 0.0
+    for i in range(n):
+        sumTop += (s1[i]-s1_mean)*(s2[i]-s2_mean)
+    for i in range(n):
+        s1_pow += math.pow(s1[i]-s1_mean,2)
+        s2_pow += math.pow(s2[i]-s2_mean,2)
+    sumBottom = math.sqrt(s1_pow*s2_pow)
+    p = sumTop/sumBottom
+    return p
+
+#生成聚类所用的数据，根据所选特征选择
+def get_cluster_data(cluster_series_data_file):
+    cluster_series_list = []
+    column_list = ['cpu_max', 'cpu_min',
+                   # 'boot_max', 'boot_min', 'home_max', 'home_min','monitor_max', 'monitor_min', 'rt_max', 'rt_min', 'tmp_max', 'tmp_min',
+                   'mem_max', 'mem_min',
+                   'cpu_max_1', 'cpu_min_1',
+                   # 'boot_max_1', 'boot_min_1', 'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1', 'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1',
+                   'mem_max_1', 'mem_min_1',
+                   'cpu_max_2', 'cpu_min_2',
+                   # 'boot_max_2', 'boot_min_2','home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2','rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2',
+                   'mem_max_2', 'mem_min_2',
+                    'cpu_max_3', 'cpu_min_3',
+                   # 'boot_max_3', 'boot_min_3','home_max_3', 'home_min_3', 'monitor_max_3', 'monitor_min_3','rt_max_3', 'rt_min_3', 'tmp_max_3', 'tmp_min_3',
+                   'mem_max_3', 'mem_min_3',
+                   'cpu_max_4', 'cpu_min_4',
+                   # 'boot_max_4', 'boot_min_4','home_max_4', 'home_min_4', 'monitor_max_4', 'monitor_min_4','rt_max_4', 'rt_min_4', 'tmp_max_4', 'tmp_min_4',
+                   'mem_max_4', 'mem_min_4',
+                    'cpu_max_5', 'cpu_min_5',
+                   # 'boot_max_5', 'boot_min_5','home_max_5', 'home_min_5', 'monitor_max_5', 'monitor_min_5', 'rt_max_5', 'rt_min_5', 'tmp_max_5', 'tmp_min_5',
+                   'mem_max_5', 'mem_min_5',
+                   'event','content']
+    df = pd.read_csv(cluster_series_data_file,usecols=column_list, sep=',', dtype=str)
+    data = df.values
+    for d in data:
+        floats = d.tolist()
+        float_list = [float(i) for i in floats]
+        cluster_series_list.append(float_list)
+    return cluster_series_list
 #层次聚类
+def hierarchical_clusterting(cluster_series_data_file,n) :
+    series = get_cluster_data(cluster_series_data_file)
+    kpi_series = random.sample(series,50)
+    biclusters = [ bicluster(vec = kpi_series[i][:-2], id = i,level = kpi_series[i][-2],alarm_category= kpi_series[i][-1] )
+                   for i in range(len(kpi_series)) ]   #存储序列的list
 
-
-def hierarchical_clusterting(kpi_series,n) :
-    biclusters = [ bicluster(vec = kpi_series[i][:-1], id = i,level = kpi_series[i][-1] ) for i in range(len(kpi_series)) ]   #存储序列的list
-    levels=[]  #存储聚类后的序列的level 作为验证
+    # levels=[]  #存储聚类后的序列的level 作为验证
     distances = {}     #存储各个序列间的距离
     flag = None  #记录最相似的两个序列编号id
     currentclusted = -1
@@ -75,8 +127,9 @@ def hierarchical_clusterting(kpi_series,n) :
         biclusters_len = len(biclusters)
         for i in range(biclusters_len-1) :
             for j in range(i + 1, biclusters_len) :
+                print('('+str(i)+','+str(j)+')')
                 if distances.get((biclusters[i].id,biclusters[j].id)) == None:
-                    distances[(biclusters[i].id,biclusters[j].id)] = float(DTW(biclusters[i].vec,biclusters[j].vec))    #各个序列间的距离字典
+                    distances[(biclusters[i].id,biclusters[j].id)] = float(Pearson(biclusters[i].vec,biclusters[j].vec))    #各个序列间的距离字典
                 d = distances[(biclusters[i].id,biclusters[j].id)]
                 if d < min_val :
                     min_val = d
@@ -91,17 +144,5 @@ def hierarchical_clusterting(kpi_series,n) :
         biclusters.append(newbic)#补回新聚类中心
         clusters = [child(biclusters[i]) for i in range(len(biclusters))] #深度优先搜索叶子节点，用于输出显示
         # levels = [yezi(biclusters[i]).level for i in range(len(biclusters))]
+        print(clusters)
     return biclusters,clusters
-
-
-
-if __name__ == '__main__':
-    a = [1,2,3]
-    b = [1,2,3]
-
-    # DTW(a,b)
-    C = [[1,2,3,0],[2,3,4,1],[1,2,3,0]]
-    biclusters,clusters= hierarchical_clusterting(C,2)
-    print(biclusters)
-    print(clusters)
-    # print (levels)

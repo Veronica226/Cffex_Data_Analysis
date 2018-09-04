@@ -189,11 +189,7 @@ def delete_feature(origin_file, output_file):
     print(data)
     data.to_csv(output_file,sep=',',index=None)
 
-
-#生成聚类所使用的数据，为所有有告警的kpi数据及当前时刻六小时内的kpi数据，以及告警类型
-def generate_cluster_data():
-    pass
-
+#生成各个特征的六小时内数据
 def generate_cluster_history_data(origin_dir, cluster_history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
     host_name_file_dict = {}
@@ -307,8 +303,20 @@ def generate_cluster_history_data(origin_dir, cluster_history_data_file):
     print(df_all.shape)  #643560*44
     print('done')
 
-# def generate_cluster_merge_data(,cluster_merge_data_file):
-#     pass
+#生成聚类所用的序列集合，每个集合元素为特征六小时的特征数据及告警等级和告警类型
+def generate_cluster_data(cluster_history_data_file,alarm_file,cluster_merge_data_file):
+    feature_data = pd.read_csv(cluster_history_data_file, sep=',', dtype=str)
+    print(feature_data.shape)
+    alarm_data= pd.read_csv(alarm_file, sep=',', dtype=str)
+    print(alarm_data.shape)
+    # 通过主机名和时间 左连接将告警事件match到对应的特征数据中,并包含level和content两列数据  共7046条
+    merged_df = pd.merge(feature_data, alarm_data, on=['hostname', 'archour'], how="inner", left_index=False, right_index=False)
+    print(merged_df)
+    # merge之后，有7997条告警数据，639199条非告警数据
+    merged_df.to_csv(cluster_merge_data_file, sep=',', index=False)
+    # print(merged_df['content'].value)
+    # print(merged_df[merged_df['event'] == '1'].shape)
+
 
 
 
