@@ -157,7 +157,7 @@ def call_level_division_func(flag=False):
         cluster_series_data_file =os.path.join(cluster_data_dir, "cluster_series_data.csv")
         # level_division.hierarchical_clusterting()
         # level_division.get_cluster_data(cluster_series_data_file)
-        level_division.hierarchical_clusterting(cluster_series_data_file,3)
+        level_division.hierarchical_clusterting(cluster_series_data_file,4)
 
 
 

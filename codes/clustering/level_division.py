@@ -81,6 +81,9 @@ def Pearson(s1,s2):
     p = sumTop/sumBottom
     return p
 
+def DOT(s1,s2):
+    return np.dot(s1,s2)
+
 #生成聚类所用的数据，根据所选特征选择
 def get_cluster_data(cluster_series_data_file):
     cluster_series_list = []
@@ -102,47 +105,95 @@ def get_cluster_data(cluster_series_data_file):
                     'cpu_max_5', 'cpu_min_5',
                    # 'boot_max_5', 'boot_min_5','home_max_5', 'home_min_5', 'monitor_max_5', 'monitor_min_5', 'rt_max_5', 'rt_min_5', 'tmp_max_5', 'tmp_min_5',
                    'mem_max_5', 'mem_min_5',
-                   'event','content']
+                  'category', 'event','content']
     df = pd.read_csv(cluster_series_data_file,usecols=column_list, sep=',', dtype=str)
-    data = df.values
-    for d in data:
-        floats = d.tolist()
-        float_list = [float(i) for i in floats]
-        cluster_series_list.append(float_list)
-    return cluster_series_list
+    #
+    # data = df.values
+    # for d in data:
+    #     floats = d.tolist()
+    #     float_list = [float(i) for i in floats]
+    #     cluster_series_list.append(float_list)
+    # return cluster_series_list
+    print(df)
+    return df
 #层次聚类
 def hierarchical_clusterting(cluster_series_data_file,n) :
-    series = get_cluster_data(cluster_series_data_file)
-    kpi_series = random.sample(series,50)
-    biclusters = [ bicluster(vec = kpi_series[i][:-2], id = i,level = kpi_series[i][-2],alarm_category= kpi_series[i][-1] )
-                   for i in range(len(kpi_series)) ]   #存储序列的list
+    series_df = get_cluster_data(cluster_series_data_file)
+    for category, series in series_df.groupby('category'):
+        print(category + ':')
+        data = series.values
+        kpi_series = []
+        for d in data:
+            floats = d.tolist()
+            float_list = [float(i) for i in floats]
+            kpi_series.append(float_list)
 
-    # levels=[]  #存储聚类后的序列的level 作为验证
-    distances = {}     #存储各个序列间的距离
-    flag = None  #记录最相似的两个序列编号id
-    currentclusted = -1
+        # kpi_series = random.sample(series,30)
+        biclusters = [ bicluster(vec = kpi_series[i][:-2], id = i,level = kpi_series[i][-2],alarm_category= kpi_series[i][-1] )
+                    for i in range(len(kpi_series)) ]   #存储序列的list
 
-    while(len(biclusters) > n) : #假设聚成n个类
-        min_val = float('inf') #Python的无穷大应该是inf
-        biclusters_len = len(biclusters)
-        for i in range(biclusters_len-1) :
-            for j in range(i + 1, biclusters_len) :
-                print('('+str(i)+','+str(j)+')')
-                if distances.get((biclusters[i].id,biclusters[j].id)) == None:
-                    distances[(biclusters[i].id,biclusters[j].id)] = float(Pearson(biclusters[i].vec,biclusters[j].vec))    #各个序列间的距离字典
-                d = distances[(biclusters[i].id,biclusters[j].id)]
-                if d < min_val :
-                    min_val = d
-                    flag = (i,j)     #更新最邻近的两个序列间距离，以及序列的编号
+        # levels=[]  #存储聚类后的序列的level 作为验证
+        distances = {}     #存储各个序列间的距离
+        flag = None  #记录最相似的两个序列编号id
+        currentclusted = -1
 
-        bic1,bic2 = flag
-        newvec = [(biclusters[bic1].vec[i] + biclusters[bic2].vec[i])/2 for i in range(len(biclusters[bic1].vec))] #形成新的类中心，平均
-        newbic = bicluster(newvec, left=biclusters[bic1], right=biclusters[bic2], distance=min_val, id = currentclusted) #二合一
-        currentclusted -= 1
-        del biclusters[bic2] #删除聚成一起的两个数据，由于这两个数据要聚成一起
-        del biclusters[bic1]
-        biclusters.append(newbic)#补回新聚类中心
-        clusters = [child(biclusters[i]) for i in range(len(biclusters))] #深度优先搜索叶子节点，用于输出显示
-        # levels = [yezi(biclusters[i]).level for i in range(len(biclusters))]
-        print(clusters)
-    return biclusters,clusters
+        while(len(biclusters) > n) : #假设聚成n个类
+            min_val = float('inf') #Python的无穷大应该是inf
+            biclusters_len = len(biclusters)
+            for i in range(biclusters_len-1) :
+                for j in range(i + 1, biclusters_len) :
+                    print('('+str(i)+','+str(j)+')')
+                    if distances.get((biclusters[i].id,biclusters[j].id)) == None:
+                        distances[(biclusters[i].id,biclusters[j].id)] = float(DTW(biclusters[i].vec,biclusters[j].vec))    #各个序列间的距离字典
+                    d = distances[(biclusters[i].id,biclusters[j].id)]
+                    if d < min_val :
+                        min_val = d
+                        flag = (i,j)     #更新最邻近的两个序列间距离，以及序列的编号
+
+            bic1,bic2 = flag
+            newvec = [(biclusters[bic1].vec[i] + biclusters[bic2].vec[i])/2 for i in range(len(biclusters[bic1].vec))] #形成新的类中心，平均
+            newbic = bicluster(newvec, left=biclusters[bic1], right=biclusters[bic2], distance=min_val, id = currentclusted) #二合一
+            currentclusted -= 1
+            del biclusters[bic2] #删除聚成一起的两个数据，由于这两个数据要聚成一起
+            del biclusters[bic1]
+            biclusters.append(newbic)#补回新聚类中心
+            clusters = [child(biclusters[i]) for i in range(len(biclusters))] #深度优先搜索叶子节点，用于输出显示
+            # levels = [yezi(biclusters[i]).level for i in range(len(biclusters))]
+            print(clusters)
+    # return biclusters,clusters
+
+#数据降维
+def PCA(data):
+    pass
+
+
+def zeroMean(dataMat):
+    meanVal = np.mean(dataMat, axis=0)  # 计算该轴上的统计值（0为列，1为行）
+    newData = dataMat - meanVal
+    return newData, meanVal
+
+# def pca(dataMat, percent=0.99):
+#
+#     newData, meanVal = zeroMean(dataMat)
+#     covMat = np.cov(newData, rowvar=0)
+#     eigVals, eigVects = np.linalg.eig(np.mat(covMat))
+#     n = percentage2n(eigVals, percent)  # 要达到percent的方差百分比，需要前n个特征向量
+#     print(str(n) + u"vectors")
+#     eigValIndice = np.argsort(eigVals)  # 对特征值从小到大排序
+#     n_eigValIndice = eigValIndice[-1:-(n + 1):-1]  # 最大的n个特征值的下标
+#     n_eigVect = eigVects[:, n_eigValIndice]  # 最大的n个特征值对应的特征向量
+#     lowDDataMat = newData * n_eigVect  # 低维特征空间的数据
+#     reconMat = (lowDDataMat * n_eigVect.T) + meanVal  # 重构数据
+#     return reconMat, lowDDataMat
+
+def percentage2n(eigVals, percentage):
+    sortArray = np.sort(eigVals)  # 升序
+    sortArray = sortArray[-1::-1]  # 逆转，即降序
+    arraySum = sum(sortArray)
+    tmpSum = 0
+    num = 0
+    for i in sortArray:
+        tmpSum += i
+        num += 1
+        if tmpSum >= arraySum * percentage:
+            return num
