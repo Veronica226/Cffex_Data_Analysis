@@ -203,13 +203,17 @@ def check_completeness(origin_dir):
 def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
     node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
+                       usecols=['node_alias','last_time', 'alarm_content'])
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
     data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
     # data['alarm_level'] = '1'    #将事件级别全部赋值为1
-    data.columns = ['hostname','category', 'archour','event','content']
+    data.columns = ['hostname', 'archour','event']
+    # data.columns = ['hostname', 'category', 'archour', 'event', 'content']
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)
+
 
 def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应node_alias 也就是主机名
     node_value = node_dict[node_key]
@@ -224,7 +228,6 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
         group.drop(['hostname'], axis=1, inplace=True)
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
-
 
 #简单方法：告警事件文件中直接剔除ping告警数据
 def delete_ping_data(alarm_data_file, deleted_alarm_data_file):

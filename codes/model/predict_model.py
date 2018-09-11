@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import random
 
 
-from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score,confusion_matrix,classification_report
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
@@ -99,20 +99,20 @@ def read_data(data_file,split):
     #                                'monitor_max', 'monitor_min','rt_max', 'rt_min',
     #                                 'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
     # 创建空dataframe 存放merge之后的数据
-    data = pd.read_csv(data_file, sep=',', usecols=[#'cpu_max', 'cpu_min',
-                                                    'boot_max', 'boot_min', 'home_max', 'home_min',
-                                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                                    'tmp_max', 'tmp_min',
+    data = pd.read_csv(data_file, sep=',', usecols=['cpu_max', 'cpu_min',
+                                                    # 'boot_max', 'boot_min', 'home_max', 'home_min',
+                                                    # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                                    # 'tmp_max', 'tmp_min',
                                                       'mem_max', 'mem_min',
-                                                     # 'cpu_max_1', 'cpu_min_1',
-                                                    'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
-                                                    'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
-                                                    'tmp_max_1', 'tmp_min_1',
+                                                     'cpu_max_1', 'cpu_min_1',
+                                                    # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+                                                    # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+                                                    # 'tmp_max_1', 'tmp_min_1',
                                                      'mem_max_1', 'mem_min_1',
-                                                     # 'cpu_max_2', 'cpu_min_2',
-                                                    'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
-                                                    'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
-                                                    'tmp_max_2', 'tmp_min_2',
+                                                      'cpu_max_2', 'cpu_min_2',
+                                                    # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+                                                    # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+                                                    # 'tmp_max_2', 'tmp_min_2',
                                                       'mem_max_2', 'mem_min_2',
                                                     'event'], dtype=np.float64)
 
@@ -227,13 +227,26 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
     fig.savefig(pr_plot_path, dpi=100)
     #plt.show()
 
+def plot_confusion_matrix(confusion_mat):
+    '''将混淆矩阵画图并显示出来'''
+    plt.imshow(confusion_mat, interpolation='nearest', cmap=plt.cm.spring)
+    plt.title('Confusion matrix')
+    plt.colorbar()
+    tick_marks = np.arange(confusion_mat.shape[0])
+    plt.xticks(tick_marks, tick_marks)
+    plt.yticks(tick_marks, tick_marks)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+
+
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
     test_classifiers_list = [#'GBDT',
                              #  'KNN',
                              # 'LR',
-                             'RF',
+                             # 'RF',
                              'DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
@@ -253,15 +266,16 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         start_time = time.time()
         model = classifiers[classifier](train_x, train_y)
         print('training took %fs!' % (time.time() - start_time))
-        # predict = model.predict(test_x)
+        predict = model.predict(test_x)
+        # print(predict)
         #predict_proba = model.predict(test_x)
         if(classifier == 'SVM'):
             test_x = MinMaxScaler().fit_transform(test_x)
-        predict_proba = model.predict_proba(test_x)[:,1]
+        # predict_proba = model.predict_proba(test_x)[:,1]
         if model_save_file != None:
             model_save[classifier] = model
 
-        generate_ROC_plot(test_y, predict_proba, classifier)
+        # generate_ROC_plot(test_y, predict_proba, classifier)
 
         # generate_PR_plot(test_y, predict_proba, classifier)
         # generate_learning_curve(data_file, model, classifier)
@@ -269,21 +283,49 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
         # generate_compared_curve(test_y,predict_proba,classifier)
 
 
-        predict_proba[predict_proba >= 0.5] = 1
-        predict_proba[predict_proba < 0.5] = 0
-        predict_proba = predict_proba.astype(np.int64)
+        # predict_proba[predict_proba >= 0.5] = 1
+        # predict_proba[predict_proba < 0.5] = 0
+        # predict_proba = predict_proba.astype(np.int64)
         #print(predict_proba)
 
+        confusion_mat = confusion_matrix(test_y,predict)
+        print(confusion_mat)
+        confusion_mat[1,1] = 0
+        plot_confusion_matrix(confusion_mat)
+        print(classification_report(test_y,predict))
+
+        #
+        # precision = metrics.precision_score(test_y, predict, average=None)
+        # recall = metrics.recall_score(test_y, predict, average=None)
+        # fbetascore = fbeta_score(test_y, predict, 0.5,average=None)
+        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+
+        #
+        # precision = metrics.precision_score(test_y, predict, average="micro")
+        # recall = metrics.recall_score(test_y, predict, average="micro")
+        # fbetascore = fbeta_score(test_y, predict, 0.5, average="micro")
+        # print(
+        #     'precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+
+        # print('predict proba 1 = {0}%'.format(100*(predict[predict == 1].sum() / predict.size)))
+        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
 #change later
-        precision = metrics.precision_score(test_y, predict_proba)
-        recall = metrics.recall_score(test_y, predict_proba)
-        fbetascore = fbeta_score(test_y, predict_proba, 0.5)
-        print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-        print('model score: %.6f' % (model.score(test_x, test_y)))
-        accuracy = metrics.accuracy_score(test_y, predict_proba)
-        print('accuracy: %.6f%%' % (100 * accuracy))
-        print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
-        print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+        # precision = metrics.precision_score(test_y, predict_proba, average="micro")
+        # recall = metrics.recall_score(test_y, predict_proba, average="micro")
+        # fbetascore = fbeta_score(test_y, predict_proba, 0.5,average="micro" )
+        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict_proba)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+        # print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
+        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
 
 
         # np.savetxt(predict_proba_file,predict_proba)

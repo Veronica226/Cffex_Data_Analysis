@@ -35,6 +35,7 @@ def call_data_preprocessing_func(flag=False):
         alarm_out_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")
         alarm_out_file_final = os.path.join(predict_data_dir, "alarm_final_data.csv")
         alarm_out_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
+        multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "multiclass_alarm_data.csv")
 
         # #处理原始告警数据
         # data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -55,7 +56,7 @@ def call_data_preprocessing_func(flag=False):
         #data_preprocessing.check_ping_alarm_data(fixed_alarm_data_file,final_alarm_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, alarm_out_file_cluster)
+        data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, multicalss_alarm_out_file)
 
         #处理原始告警数据
         #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -96,6 +97,9 @@ def call_feature_extraction_func(flag=False):
         alarm_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
         cluster_series_data_file= os.path.join(cluster_data_dir, "cluster_series_data.csv")
 
+        multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "multiclass_alarm_data.csv")
+        multiclass_data_file = os.path.join(multiclass_data_dir, "multiclass_data.csv")
+
 
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
@@ -109,7 +113,7 @@ def call_feature_extraction_func(flag=False):
         #feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        # feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file_final,merged_final_file)
+        feature_extraction.generate_data_matrix_and_vector(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
         #保留部分特征
         # feature_extraction.delete_feature(merged_final_file,no_disk_file)
@@ -117,7 +121,7 @@ def call_feature_extraction_func(flag=False):
         #生成聚类所用的特征历史数据
         # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
 
-        feature_extraction.generate_cluster_data(cluster_history_data_file,alarm_file_cluster,cluster_series_data_file)
+        # feature_extraction.generate_cluster_data(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
 #调用预测模型的函数
 def call_predict_model_func(flag=False):
@@ -134,7 +138,7 @@ def call_predict_model_func(flag=False):
         cpu_only_file = os.path.join(predict_data_dir, "cpu_only_data.csv")
         disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
-
+        multiclass_data_file = os.path.join(multiclass_data_dir, "multiclass_data.csv")
 
 
         # #包含若干分类器的预测模型
@@ -151,6 +155,8 @@ def call_predict_model_func(flag=False):
         # print('only mem')
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
 
+        predict_model.classifiers_for_prediction(multiclass_data_file, model_save_file, history_predict_proba_file)
+
 
 def call_level_division_func(flag=False):
     if(flag):
@@ -165,6 +171,6 @@ def call_level_division_func(flag=False):
 if __name__ == '__main__':
     call_data_preprocessing_func()
     call_feature_extraction_func()
-    call_predict_model_func()
-    call_level_division_func(flag=True)
+    call_predict_model_func(flag=True)
+    call_level_division_func()
 

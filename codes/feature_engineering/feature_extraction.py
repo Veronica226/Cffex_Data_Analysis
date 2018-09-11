@@ -88,7 +88,7 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     #merge之后，有7997条告警数据，639199条非告警数据
     merged_df.to_csv(merged_data_file, sep=',', index=False)
     print(merged_df[merged_df['event']==0].shape)
-    print(merged_df[merged_df['event'] == '1'].shape)
+    # print(merged_df[merged_df['event'] == '1'].shape)
 
 def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
