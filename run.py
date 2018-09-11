@@ -4,7 +4,7 @@ import pandas as pd
 
 from codes.preprocessing import data_preprocessing
 from codes.feature_engineering import feature_extraction
-from codes.model import predict_model
+from codes.model import predict_model, anomaly_detection
 from codes.clustering import level_division
 from settings import *
 import os
@@ -123,7 +123,10 @@ def call_feature_extraction_func(flag=False):
 
         # feature_extraction.generate_cluster_data(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
-#调用预测模型的函数
+        #获取按主机的时间序列分解的数据
+        #data_preprocessing.generate_kpi_data_decomposition(merged_data_file, host_data_dir)
+
+#调用分类器预测模型的函数
 def call_predict_model_func(flag=False):
     if(flag):
         predict_proba_file = os.path.join(predict_data_dir,"predict_proba.csv")
@@ -168,9 +171,21 @@ def call_level_division_func(flag=False):
 
 
 
+def call_anomaly_detection_func(flag=False):
+    if(flag):
+        #对每个主机训练异常检测模型
+        #anomaly_detection.generate_time_series_decomposition_model(host_data_dir)
+        #训练完模型之后会输出测试集的结果文件，下面需要针对结果计算相关指标
+        #anomaly_detection.calc_model_evaluation_score(host_data_dir)
+        #计算所有主机那些评价指标的平均值
+        anomaly_detection.calc_host_ave_model_evaluation_score(host_data_dir)
+        return
+
 if __name__ == '__main__':
     call_data_preprocessing_func()
     call_feature_extraction_func()
-    call_predict_model_func(flag=True)
-    call_level_division_func()
+
+    call_predict_model_func()
+    call_anomaly_detection_func()
+    call_level_division_func(flag=True)
 

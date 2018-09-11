@@ -5,7 +5,7 @@ import string
 import pandas as pd
 import numpy as np
 from datetime import datetime,timedelta
-import os, sys, json, csv, re
+import os, sys, json, csv, re, gc
 
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
 ######################################################################################
@@ -457,3 +457,51 @@ def generate_alarm_level_content(host_alarm_file_path, output_dir):
         df_alarm_level = df_alarm_level.drop_duplicates()
         output_file_path = os.path.join(output_dir, alarm_level + '_events.csv')
         df_alarm_level.to_csv(output_file_path, sep=',', index=False)
+
+
+#获取kpi_data的时间序列分解数据，便于按照每个主机来建立相应的异常检测模型
+def generate_kpi_data_decomposition(input_file_path, output_dir):
+    kpi_data = pd.read_csv(input_file_path)
+    host_group = kpi_data.groupby(['hostname'])
+    #host_dir = 'host_data'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    kpi_list = kpi_data.iloc[:, 2:-1].columns
+    T = 168   #按照一周的168个小时的尺度来计算
+    host_file_list = []
+    for host_name, df_group in host_group:
+        host_dir = os.path.join(output_dir, host_name)
+        if(not os.path.exists(host_dir)):
+            os.makedirs(host_dir)
+        group_path = os.path.join(host_dir, host_name + '_data.csv')
+        host_file_list.append(host_name + '_data.csv')
+        sz = df_group.shape[0]
+        df_group_cp = df_group.copy()
+        for kpi in kpi_list:
+            kpi_data_list = df_group[kpi]
+            kpi_L_list = []
+            for i in range(sz):
+                lpos = max(0, i - T // 2)
+                rpos = min(sz, i + T // 2 + 1)
+                num = rpos - lpos
+                kpi_L_list.append(kpi_data_list[lpos: rpos].sum() / num)
+            kpi_L_list = np.array(kpi_L_list)
+            kpi_S_list = []
+            for i in range(sz):
+                lpos = i % T
+                rpos = i + 1
+                num = i // T + 1
+                kpi_S_list.append(kpi_data_list[lpos: rpos: T].sum() / num)
+            kpi_S_list = np.array(kpi_S_list)
+            kpi_N_list = kpi_data_list - kpi_L_list - kpi_S_list
+            df_group_cp[kpi + '_L'] = kpi_L_list   #Trend Time Series
+            df_group_cp[kpi + '_S'] = kpi_S_list   #Seasonality Time Series
+            df_group_cp[kpi + '_N'] = kpi_N_list   #Variation Time Series
+        df_group_cp.to_csv(group_path, sep=',', index=False)
+        gc.collect()
+        print(host_name + ' decomposition finished!')
+    with open(os.path.join(output_dir, 'host_data_index.txt'), 'w') as f:
+        for host_file in host_file_list:
+            f.write(host_file + '\n')
+
+

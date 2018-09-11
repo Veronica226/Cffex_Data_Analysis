@@ -60,8 +60,8 @@ def DTW(s1,s2):
         for j in range(c):
             D1[i, j] += min(D0[i, j], D0[i, j + 1], D0[i + 1, j])
     distance = D1[-1,-1]
-    # print(D1) # 累积距离矩阵
-    # print(distance) # 序列距离
+    print(D1) # 累积距离矩阵
+    print(distance) # 序列距离
     return distance
 
 def Pearson(s1,s2):

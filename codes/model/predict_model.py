@@ -259,7 +259,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
                    }
 
     print('reading training and testing data...')
-    train_x,  test_x,train_y, test_y = read_data(data_file,split=True)
+    train_x, test_x, train_y, test_y = read_data(data_file,split=True)
 
     for classifier in test_classifiers_list:
         print('******************* %s ********************' % classifier)
