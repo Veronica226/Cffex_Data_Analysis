@@ -205,7 +205,7 @@ def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
     # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
     data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
-                       usecols=['node_alias','last_time', 'alarm_content'])
+                       usecols=['node_alias','last_time', 'alarm_level'])
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
     data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
     # data['alarm_level'] = '1'    #将事件级别全部赋值为1

@@ -244,9 +244,9 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
     test_classifiers_list = [#'GBDT',
-                             #  'KNN',
-                             # 'LR',
-                             # 'RF',
+                              'KNN',
+                             'LR',
+                             'RF',
                              'DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
