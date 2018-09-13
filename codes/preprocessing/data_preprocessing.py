@@ -5,7 +5,7 @@ import string
 import pandas as pd
 import numpy as np
 from datetime import datetime,timedelta
-import os, sys, json, csv, re
+import os, sys, json, csv, re, gc
 
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
 ######################################################################################
@@ -206,13 +206,17 @@ def check_completeness(origin_dir):
 def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
     node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','last_time','alarm_level'])  #提取告警事件文件内的主机、时间、事件级别
+    # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
+                       usecols=['node_alias','last_time', 'alarm_level'])
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
     data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
-    data['alarm_level'] = '1'    #将事件级别全部赋值为1
+    # data['alarm_level'] = '1'    #将事件级别全部赋值为1
     data.columns = ['hostname', 'archour','event']
+    # data.columns = ['hostname', 'category', 'archour', 'event', 'content']
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)
+
 
 def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应node_alias 也就是主机名
     node_value = node_dict[node_key]
@@ -227,7 +231,6 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
         group.drop(['hostname'], axis=1, inplace=True)
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
-
 
 #简单方法：告警事件文件中直接剔除ping告警数据
 def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
@@ -277,7 +280,57 @@ def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_al
     data = data1[data1['node_alias'] != -1]
     data.to_csv(fixed_alarm_data_file, sep=',', index=False)
 
+#根据alarm content内的主机对告警事件内容进行分组，并检查ping事件是否与主机异常相关联
+def check_ping_alarm_data(fixed_alarm_data_file, final_alarm_data_file):
+    data = pd.read_csv(fixed_alarm_data_file, sep=',', dtype=str)
+    drop_index_list = []  #存储要删除的indexlist
+    for node_alias,group in data.groupby('node_alias'):   #每个主机的dataFrame
+        print('node_alias:'+str(node_alias))
+        print(group)
+        index_list = group.index.tolist()
+        print('index_list:')
+        print(index_list)
 
+        group1 = group[group['alarm_content'] != '36']
+        group2 = group1[group1['alarm_content'] != '37']
+        group3 = group2[group2['alarm_content'] != '38']
+        time_list = group3['last_time'].tolist()
+        print('other time list:')
+        print(time_list)   #获取非ping告警的时间list
+
+        cnt = 0
+        for i in index_list:     #遍历index
+            alarm_content=group.iloc[cnt,8]
+            if (alarm_content == '36') or (alarm_content == '37') or (alarm_content == '38'):  #判断是否是ping告警事件
+                time = group.iloc[cnt,6]    #获取时间
+                flag = find_close_alarm(time_list,time) #寻找是否是主机异常引起的ping事件
+                print(flag)
+                if flag == 0:      #如果没找到 则为网络异常引起的ping
+                    drop_index_list.append(i)    #将此条ping事件的index添加到要删除的indexlist中
+                    print('delete index: '+str(i))
+            cnt = cnt+1
+
+    print('drop_index_list:')
+    print(drop_index_list)
+    print(len(drop_index_list))
+    data.drop(drop_index_list,inplace=True)   #删除要删掉的index数据
+    print(data)
+    data.to_csv(final_alarm_data_file, sep=',', index=False)
+
+#查找三十分钟内是否有主机告警
+def find_close_alarm(time_list,time):
+    new_time_list = map(lambda x: datetime.strptime(x, '%Y%m%d %H:%M:%S'), time_list)
+    new_time  = datetime.strptime(time,  '%Y%m%d %H:%M:%S')
+    flag = 0
+    for i in new_time_list:
+        if new_time > i:
+            time_delta = (new_time - i).seconds #计算时间差
+        else:
+            time_delta = (i - new_time).seconds
+        if  time_delta < 1800:   #30分钟之内
+            flag = 1
+        break
+    return  flag
 
 
 
@@ -407,3 +460,51 @@ def generate_alarm_level_content(host_alarm_file_path, output_dir):
         df_alarm_level = df_alarm_level.drop_duplicates()
         output_file_path = os.path.join(output_dir, alarm_level + '_events.csv')
         df_alarm_level.to_csv(output_file_path, sep=',', index=False)
+
+
+#获取kpi_data的时间序列分解数据，便于按照每个主机来建立相应的异常检测模型
+def generate_kpi_data_decomposition(input_file_path, output_dir):
+    kpi_data = pd.read_csv(input_file_path)
+    host_group = kpi_data.groupby(['hostname'])
+    #host_dir = 'host_data'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    kpi_list = kpi_data.iloc[:, 2:-1].columns
+    T = 168   #按照一周的168个小时的尺度来计算
+    host_file_list = []
+    for host_name, df_group in host_group:
+        host_dir = os.path.join(output_dir, host_name)
+        if(not os.path.exists(host_dir)):
+            os.makedirs(host_dir)
+        group_path = os.path.join(host_dir, host_name + '_data.csv')
+        host_file_list.append(host_name + '_data.csv')
+        sz = df_group.shape[0]
+        df_group_cp = df_group.copy()
+        for kpi in kpi_list:
+            kpi_data_list = df_group[kpi]
+            kpi_L_list = []
+            for i in range(sz):
+                lpos = max(0, i - T // 2)
+                rpos = min(sz, i + T // 2 + 1)
+                num = rpos - lpos
+                kpi_L_list.append(kpi_data_list[lpos: rpos].sum() / num)
+            kpi_L_list = np.array(kpi_L_list)
+            kpi_S_list = []
+            for i in range(sz):
+                lpos = i % T
+                rpos = i + 1
+                num = i // T + 1
+                kpi_S_list.append(kpi_data_list[lpos: rpos: T].sum() / num)
+            kpi_S_list = np.array(kpi_S_list)
+            kpi_N_list = kpi_data_list - kpi_L_list - kpi_S_list
+            df_group_cp[kpi + '_L'] = kpi_L_list   #Trend Time Series
+            df_group_cp[kpi + '_S'] = kpi_S_list   #Seasonality Time Series
+            df_group_cp[kpi + '_N'] = kpi_N_list   #Variation Time Series
+        df_group_cp.to_csv(group_path, sep=',', index=False)
+        gc.collect()
+        print(host_name + ' decomposition finished!')
+    with open(os.path.join(output_dir, 'host_data_index.txt'), 'w') as f:
+        for host_file in host_file_list:
+            f.write(host_file + '\n')
+
+

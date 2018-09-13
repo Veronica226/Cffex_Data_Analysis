@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import random
 
 
-from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score,confusion_matrix,classification_report
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
@@ -98,17 +98,23 @@ def read_data(data_file,split):
     #                                 'boot_max', 'boot_min','home_max', 'home_min',
     #                                'monitor_max', 'monitor_min','rt_max', 'rt_min',
     #                                 'tmp_max', 'tmp_min','mem_max', 'mem_min','event'],dtype=np.float64)
-
-    data = pd.read_csv(data_file, sep=',', usecols=['cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
-                                                    'boot_max', 'boot_min', 'home_max', 'home_min',
-                                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
-                                                     'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
-                                                      'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
-                                                     'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
-                                                      'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
-                                                      'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
-                                                     'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2','event'], dtype=np.float64)
+    # 创建空dataframe 存放merge之后的数据
+    data = pd.read_csv(data_file, sep=',', usecols=['cpu_max', 'cpu_min',
+                                                    # 'boot_max', 'boot_min', 'home_max', 'home_min',
+                                                    # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                                                    # 'tmp_max', 'tmp_min',
+                                                      'mem_max', 'mem_min',
+                                                     'cpu_max_1', 'cpu_min_1',
+                                                    # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+                                                    # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+                                                    # 'tmp_max_1', 'tmp_min_1',
+                                                     'mem_max_1', 'mem_min_1',
+                                                      'cpu_max_2', 'cpu_min_2',
+                                                    # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+                                                    # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+                                                    # 'tmp_max_2', 'tmp_min_2',
+                                                      'mem_max_2', 'mem_min_2',
+                                                    'event'], dtype=np.float64)
 
     # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
     # test = data[int(len(data) * 0.8):]
@@ -142,6 +148,8 @@ def read_data(data_file,split):
         return feature_data, label_data
 
 def generate_ROC_plot(test_y, predict,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     FP, TP, thresholds = roc_curve(test_y, predict)
     ROC_auc = auc(FP, TP)
     fig = plt.figure()
@@ -153,11 +161,14 @@ def generate_ROC_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    plt.show()
-    roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_ROC_CURVE.png')
+    roc_plot_path = os.path.join(history_metric_figures_dir, classifier_name + 'nocpu_ROC_CURVE.png')
     fig.savefig(roc_plot_path, dpi=100)
+    #plt.show()
+
 
 def generate_PR_plot(test_y, predict,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     precision, recall, thresholds = precision_recall_curve(test_y, predict)
     fig = plt.figure()
     plt.title(classifier_name+'- PR CURVE')
@@ -166,11 +177,13 @@ def generate_PR_plot(test_y, predict,classifier_name):
     plt.ylim([0, 1])
     plt.ylabel('Recall')
     plt.xlabel('Precision')
-    plt.show()
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_PR_CURVE.png')
     fig.savefig(pr_plot_path, dpi=100)
+    #plt.show()
 
 def generate_learning_curve(data_file,model,classifier_name):
+    if not os.path.exists(history_metric_figures_dir):
+        os.makedirs(history_metric_figures_dir)
     cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
     X, Y = read_data(data_file, split=False)
     print('start drawing...')
@@ -187,9 +200,9 @@ def generate_learning_curve(data_file,model,classifier_name):
     plt.ylabel("Score")
     plt.legend(loc="best")
     plt.title(classifier_name + '- LEARNING CURVE')
-    plt.show()
     pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_learning-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
+    #plt.show()
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
     train_sizes, train_scores, test_scores = learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
@@ -197,6 +210,8 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,n_jobs=1, tra
     test_scores_mean = np.mean(test_scores, axis=1)
 
 def generate_compared_curve(test_y,predict_proba,classifier_name):
+    if not os.path.exists(metric_figures_dir):
+        os.makedirs(metric_figures_dir)
     fig = plt.figure()
     test_y = test_y[1:50]
     predict_proba = predict_proba[1:50]
@@ -207,14 +222,32 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
     plt.ylabel("label")
     plt.legend(loc="best")
     plt.title(classifier_name + '- compared')
-    plt.show()
+
     pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
+    #plt.show()
+
+def plot_confusion_matrix(confusion_mat):
+    '''将混淆矩阵画图并显示出来'''
+    plt.imshow(confusion_mat, interpolation='nearest', cmap=plt.cm.spring)
+    plt.title('Confusion matrix')
+    plt.colorbar()
+    tick_marks = np.arange(confusion_mat.shape[0])
+    plt.xticks(tick_marks, tick_marks)
+    plt.yticks(tick_marks, tick_marks)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['GBDT','KNN','LR','RF','DT']
+    test_classifiers_list = [#'GBDT',
+                              'KNN',
+                             'LR',
+                             'RF',
+                             'DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -226,40 +259,75 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
                    }
 
     print('reading training and testing data...')
-    train_x,  test_x,train_y, test_y = read_data(data_file,split=True)
+    train_x, test_x, train_y, test_y = read_data(data_file,split=True)
 
     for classifier in test_classifiers_list:
         print('******************* %s ********************' % classifier)
         start_time = time.time()
         model = classifiers[classifier](train_x, train_y)
         print('training took %fs!' % (time.time() - start_time))
-        # predict = model.predict(test_x)
+        predict = model.predict(test_x)
+        # print(predict)
         #predict_proba = model.predict(test_x)
         if(classifier == 'SVM'):
             test_x = MinMaxScaler().fit_transform(test_x)
-        predict_proba = model.predict_proba(test_x)[:,1]
+        # predict_proba = model.predict_proba(test_x)[:,1]
         if model_save_file != None:
             model_save[classifier] = model
 
-        generate_ROC_plot(test_y, predict_proba, classifier)
-        generate_PR_plot(test_y, predict_proba, classifier)
-        generate_learning_curve(data_file, model, classifier)
+        # generate_ROC_plot(test_y, predict_proba, classifier)
 
-        generate_compared_curve(test_y,predict_proba,classifier)
+        # generate_PR_plot(test_y, predict_proba, classifier)
+        # generate_learning_curve(data_file, model, classifier)
+        #
+        # generate_compared_curve(test_y,predict_proba,classifier)
 
-        predict_proba[predict_proba >= 0.5] = 1
-        predict_proba[predict_proba < 0.5] = 0
-        predict_proba = predict_proba.astype(np.int64)
+
+        # predict_proba[predict_proba >= 0.5] = 1
+        # predict_proba[predict_proba < 0.5] = 0
+        # predict_proba = predict_proba.astype(np.int64)
         #print(predict_proba)
-        precision = metrics.precision_score(test_y, predict_proba)
-        recall = metrics.recall_score(test_y, predict_proba)
-        fbetascore = fbeta_score(test_y, predict_proba, 0.5)
-        print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-        print('model score: %.6f' % (model.score(test_x, test_y)))
-        accuracy = metrics.accuracy_score(test_y, predict_proba)
-        print('accuracy: %.6f%%' % (100 * accuracy))
-        print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
-        print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+        confusion_mat = confusion_matrix(test_y,predict)
+        print(confusion_mat)
+        confusion_mat[1,1] = 0
+        plot_confusion_matrix(confusion_mat)
+        print(classification_report(test_y,predict))
+
+        #
+        # precision = metrics.precision_score(test_y, predict, average=None)
+        # recall = metrics.recall_score(test_y, predict, average=None)
+        # fbetascore = fbeta_score(test_y, predict, 0.5,average=None)
+        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+
+        #
+        # precision = metrics.precision_score(test_y, predict, average="micro")
+        # recall = metrics.recall_score(test_y, predict, average="micro")
+        # fbetascore = fbeta_score(test_y, predict, 0.5, average="micro")
+        # print(
+        #     'precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+
+        # print('predict proba 1 = {0}%'.format(100*(predict[predict == 1].sum() / predict.size)))
+        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+#change later
+        # precision = metrics.precision_score(test_y, predict_proba, average="micro")
+        # recall = metrics.recall_score(test_y, predict_proba, average="micro")
+        # fbetascore = fbeta_score(test_y, predict_proba, 0.5,average="micro" )
+        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+        # print('model score: %.6f' % (model.score(test_x, test_y)))
+        # accuracy = metrics.accuracy_score(test_y, predict_proba)
+        # print('accuracy: %.6f%%' % (100 * accuracy))
+        # print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
+        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+
         # np.savetxt(predict_proba_file,predict_proba)
 
         # generate_ROC_plot(test_y, predict_proba,classifier)
