@@ -100,7 +100,7 @@ def call_feature_extraction_func(flag=False):
         level_multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "level_multiclass_alarm_data.csv")
         multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "multiclass_alarm_data.csv")
         multiclass_data_file = os.path.join(multiclass_data_dir, "level_multiclass_data.csv")
-
+        correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
 
 
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
@@ -114,7 +114,7 @@ def call_feature_extraction_func(flag=False):
         #feature_extraction.generate_history_feature(plot_data_dir,history_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        feature_extraction.generate_data_matrix_and_vector(history_data_file,level_multicalss_alarm_out_file,multiclass_data_file)
+        feature_extraction.generate_data_matrix_and_vector(history_data_file,alarm_file_cluster,correlation_data_file)
 
         #保留部分特征
         # feature_extraction.delete_feature(merged_final_file,no_disk_file)
@@ -165,9 +165,16 @@ def call_predict_model_func(flag=False):
 def call_level_division_func(flag=False):
     if(flag):
         cluster_series_data_file =os.path.join(cluster_data_dir, "cluster_series_data.csv")
+        merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
+        multiclass_data_file = os.path.join(multiclass_data_dir, "multiclass_data.csv")
+        correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
+        alarm_content_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-content.csv')
+        correlation_pair_file = os.path.join(multiclass_data_dir, "correlation_pair.csv")
+
         # level_division.hierarchical_clusterting()
         # level_division.get_cluster_data(cluster_series_data_file)
-        level_division.hierarchical_clusterting(cluster_series_data_file,4)
+        # level_division.hierarchical_clusterting(cluster_series_data_file,4)
+        level_division.get_correlation_by_hostname(correlation_data_file,hist_plot_dir,alarm_content_file,correlation_pair_file)
 
 
 
@@ -186,7 +193,7 @@ if __name__ == '__main__':
     call_data_preprocessing_func()
     call_feature_extraction_func()
 
-    call_predict_model_func(flag=True)
+    call_predict_model_func()
     call_anomaly_detection_func()
-    call_level_division_func()
+    call_level_division_func(flag=True)
 

@@ -17,7 +17,7 @@ predict_data_dir =  os.path.join(output_dir,"predicting_data")
 metric_figures_dir = os.path.join(output_dir, 'metric_figures')
 history_metric_figures_dir = os.path.join(output_dir, 'history_metric_figures')
 subplot_data_dir = os.path.join(output_dir,'subplot_data')
-
+hist_plot_dir = os.path.join(output_dir, 'hist_plot')
 cluster_data_dir =  os.path.join(output_dir,"cluster_data")
 multiclass_data_dir = os.path.join(output_dir,"multi_classification_data")
 
