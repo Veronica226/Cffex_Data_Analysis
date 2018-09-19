@@ -92,6 +92,35 @@ def svm_cross_validation(train_x, train_y):
     model.fit(train_x, train_y)
     return model
 
+def get_data(data_df,split):
+    col_list = ['cpu_max', 'cpu_min',
+                # 'boot_max', 'boot_min', 'home_max', 'home_min',
+                # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+                 # 'tmp_max', 'tmp_min',
+                  'mem_max', 'mem_min',
+                   'cpu_max_1', 'cpu_min_1',
+                    # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+                    # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+                    # 'tmp_max_1', 'tmp_min_1',
+                  'mem_max_1', 'mem_min_1',
+                  'cpu_max_2', 'cpu_min_2',
+                  # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+                  # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+                  # 'tmp_max_2', 'tmp_min_2',
+                    'mem_max_2', 'mem_min_2',
+                     'event']
+    data = data_df[col_list]
+    data = data.convert_objects(convert_numeric=True)
+    # for col in col_list:
+    #     data[col] = pd.to_numeric(data[col], errors='coerce')
+    feature_data = data.drop('event', axis=1)
+    label_data = data.event
+    if split==True:
+        return train_test_split(feature_data,label_data,test_size=0.2,random_state=800)
+        #return feature_data, test_feature_data, label_data, test_label_data
+    else:
+        return feature_data, label_data
+
 
 def read_data(data_file,split):
     # data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
@@ -114,7 +143,7 @@ def read_data(data_file,split):
                                                     # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
                                                     # 'tmp_max_2', 'tmp_min_2',
                                                       'mem_max_2', 'mem_min_2',
-                                                    'event'], dtype=np.float64)
+                                                    'event','alertgroup'], dtype=np.float64)
 
     # train = data[:int(len(data) * 0.8)]         #划分训练数据和测试数据
     # test = data[int(len(data) * 0.8):]
@@ -240,10 +269,10 @@ def plot_confusion_matrix(confusion_mat):
     plt.show()
 
 
-def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
+def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
     model_save = {}
 
-    test_classifiers_list = [#'GBDT',
+    test_classifiers_list = ['GBDT',
                               'KNN',
                              'LR',
                              'RF',
@@ -258,82 +287,103 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
                    'GBDT': gradient_boosting_classifier
                    }
 
-    print('reading training and testing data...')
-    train_x, test_x, train_y, test_y = read_data(data_file,split=True)
+    result_list = []
+    # ignored_list = []
+    all_data =  pd.read_csv(data_file, sep=',', dtype=str)
+    for alertgroup,group in all_data.groupby('alertgroup'):
+        if alertgroup != 'Net':
+            print(alertgroup)
+            print(group['event'].value_counts())
+            print('reading training and testing data...')
 
-    for classifier in test_classifiers_list:
-        print('******************* %s ********************' % classifier)
-        start_time = time.time()
-        model = classifiers[classifier](train_x, train_y)
-        print('training took %fs!' % (time.time() - start_time))
-        predict = model.predict(test_x)
-        # print(predict)
-        #predict_proba = model.predict(test_x)
-        if(classifier == 'SVM'):
-            test_x = MinMaxScaler().fit_transform(test_x)
-        # predict_proba = model.predict_proba(test_x)[:,1]
-        if model_save_file != None:
-            model_save[classifier] = model
+            train_x, test_x, train_y, test_y = get_data(group,split=True)
+            # train_x, test_x, train_y, test_y = read_data(data_file,split=True)
 
-        # generate_ROC_plot(test_y, predict_proba, classifier)
+            for classifier in test_classifiers_list:
+                print('******************* %s ********************' % classifier)
+                start_time = time.time()
+                model = classifiers[classifier](train_x, train_y)
+                print('training took %fs!' % (time.time() - start_time))
+                predict = model.predict(test_x)
+                # print(predict)
+                #predict_proba = model.predict(test_x)
+                if(classifier == 'SVM'):
+                    test_x = MinMaxScaler().fit_transform(test_x)
+                # predict_proba = model.predict_proba(test_x)[:,1]
+                if model_save_file != None:
+                    model_save[classifier] = model
 
-        # generate_PR_plot(test_y, predict_proba, classifier)
-        # generate_learning_curve(data_file, model, classifier)
-        #
-        # generate_compared_curve(test_y,predict_proba,classifier)
-
-
-        # predict_proba[predict_proba >= 0.5] = 1
-        # predict_proba[predict_proba < 0.5] = 0
-        # predict_proba = predict_proba.astype(np.int64)
-        #print(predict_proba)
-
-        confusion_mat = confusion_matrix(test_y,predict)
-        print(confusion_mat)
-        confusion_mat[1,1] = 0
-        plot_confusion_matrix(confusion_mat)
-        print(classification_report(test_y,predict))
-
-        #
-        # precision = metrics.precision_score(test_y, predict, average=None)
-        # recall = metrics.recall_score(test_y, predict, average=None)
-        # fbetascore = fbeta_score(test_y, predict, 0.5,average=None)
-        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-        # print('model score: %.6f' % (model.score(test_x, test_y)))
-        # accuracy = metrics.accuracy_score(test_y, predict)
-        # print('accuracy: %.6f%%' % (100 * accuracy))
-
-        #
-        # precision = metrics.precision_score(test_y, predict, average="micro")
-        # recall = metrics.recall_score(test_y, predict, average="micro")
-        # fbetascore = fbeta_score(test_y, predict, 0.5, average="micro")
-        # print(
-        #     'precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-        # print('model score: %.6f' % (model.score(test_x, test_y)))
-        # accuracy = metrics.accuracy_score(test_y, predict)
-        # print('accuracy: %.6f%%' % (100 * accuracy))
-
-        # print('predict proba 1 = {0}%'.format(100*(predict[predict == 1].sum() / predict.size)))
-        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
-
-#change later
-        # precision = metrics.precision_score(test_y, predict_proba, average="micro")
-        # recall = metrics.recall_score(test_y, predict_proba, average="micro")
-        # fbetascore = fbeta_score(test_y, predict_proba, 0.5,average="micro" )
-        # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-        # print('model score: %.6f' % (model.score(test_x, test_y)))
-        # accuracy = metrics.accuracy_score(test_y, predict_proba)
-        # print('accuracy: %.6f%%' % (100 * accuracy))
-        # print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
-        # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+                # generate_ROC_plot(test_y, predict_proba, classifier
+                # generate_PR_plot(test_y, predict_proba, classifier)
+                # generate_learning_curve(data_file, model, classifier)
+                # generate_compared_curve(test_y,predict_proba,classifier)
 
 
-        # np.savetxt(predict_proba_file,predict_proba)
+                # predict_proba[predict_proba >= 0.5] = 1
+                # predict_proba[predict_proba < 0.5] = 0
+                # predict_proba = predict_proba.astype(np.int64)
+                #print(predict_proba)
 
-        # generate_ROC_plot(test_y, predict_proba,classifier)
-        # generate_PR_plot(test_y, predict_proba, classifier)
-        # generate_learning_curve(data_file, model, classifier)
+                # confusion_mat = confusion_matrix(test_y,predict)
+                # print(confusion_mat)
+                # confusion_mat[1,1] = 0
+                # plot_confusion_matrix(confusion_mat)
+                # print(classification_report(test_y,predict))
 
 
-    if model_save_file != None:
-        pickle.dump(model_save, open(model_save_file, 'wb'))
+                precision = metrics.precision_score(test_y, predict)
+                recall = metrics.recall_score(test_y, predict)
+                fbetascore = fbeta_score(test_y, predict, 0.5)
+                accuracy = metrics.accuracy_score(test_y, predict)
+                model_score = model.score(test_x, test_y)
+                print('precision: %.6f' % (100 *precision))
+                print('recall: %.6f' % (100 * recall))
+                print('f0.5score: %.6f' % (100 * fbetascore))
+                print('model score: %.6f' % (100*model_score))
+                print('accuracy: %.6f%%' % (100 * accuracy))
+
+                # alertgroup_list.append(alertgroup)
+                # classifier_list.append(classifier)
+                # precision_list.append(precision)
+                # recall_list.append(recall)
+                result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
+
+                #
+                # precision = metrics.precision_score(test_y, predict, average="micro")
+                # recall = metrics.recall_score(test_y, predict, average="micro")
+                # fbetascore = fbeta_score(test_y, predict, 0.5, average="micro")
+                # print(
+                #     'precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+                # print('model score: %.6f' % (model.score(test_x, test_y)))
+                # accuracy = metrics.accuracy_score(test_y, predict)
+                # print('accuracy: %.6f%%' % (100 * accuracy))
+
+                # print('predict proba 1 = {0}%'.format(100*(predict[predict == 1].sum() / predict.size)))
+                # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+        #change later
+                # precision = metrics.precision_score(test_y, predict_proba, average="micro")
+                # recall = metrics.recall_score(test_y, predict_proba, average="micro")
+                # fbetascore = fbeta_score(test_y, predict_proba, 0.5,average="micro" )
+                # print('precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
+                # print('model score: %.6f' % (model.score(test_x, test_y)))
+                # accuracy = metrics.accuracy_score(test_y, predict_proba)
+                # print('accuracy: %.6f%%' % (100 * accuracy))
+                # print('predict proba 1 = {0}%'.format(100*(predict_proba[predict_proba == 1].sum() / predict_proba.size)))
+                # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
+
+
+                # np.savetxt(predict_proba_file,predict_proba)
+
+                # generate_ROC_plot(test_y, predict_proba,classifier)
+                # generate_PR_plot(test_y, predict_proba, classifier)
+                # generate_learning_curve(data_file, model, classifier)
+
+
+            if model_save_file != None:
+                pickle.dump(model_save, open(model_save_file, 'wb'))
+
+    result_df = pd.DataFrame(result_list,
+                             columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
+    print(result_df)
+    result_df.to_csv(result_file,sep=',',index=False)

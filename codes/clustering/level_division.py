@@ -42,7 +42,8 @@ class bicluster:
 def child(clust):
     if clust.left == None and clust.right == None :
         # print(clust.level)
-        return [clust.alarm_category]
+        # return [clust.alarm_category]
+        return [clust.level]
     return child(clust.left) + child(clust.right)
 
 def DTW(s1,s2):
@@ -128,7 +129,7 @@ def hierarchical_clusterting(cluster_series_data_file,n) :
             float_list = [float(i) for i in floats]
             kpi_series.append(float_list)
 
-        # kpi_series = random.sample(series,30)
+        # kpi_series = random.sample(kpi_series,30)
         biclusters = [ bicluster(vec = kpi_series[i][:-2], id = i,level = kpi_series[i][-2],alarm_category= kpi_series[i][-1] )
                     for i in range(len(kpi_series)) ]   #存储序列的list
 
@@ -161,7 +162,7 @@ def hierarchical_clusterting(cluster_series_data_file,n) :
             # levels = [yezi(biclusters[i]).level for i in range(len(biclusters))]
             print(clusters)
     # return biclusters,clusters
-
+        break
 #数据降维
 def PCA(data):
     pass

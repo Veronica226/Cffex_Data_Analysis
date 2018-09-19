@@ -21,7 +21,7 @@ def call_data_preprocessing_func(flag=False):
     if(flag):
         alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
 
-        deleted_alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_deleted.csv')
+        deleted_alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_deleted.csv')  #删除所有
         fixed_alarm_data_file =  os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_fixed.csv')
         final_alarm_data_file =  os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_final.csv')
         raw_alarm_processed_file =  os.path.join(origin_alarm_data_dir, 'cffex-host-alarm-processed.csv')
@@ -32,11 +32,14 @@ def call_data_preprocessing_func(flag=False):
 
         alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
-        alarm_out_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")
-        alarm_out_file_final = os.path.join(predict_data_dir, "alarm_final_data.csv")
+        alarm_out_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")  #修改对应主机
+        alarm_out_file_final = os.path.join(predict_data_dir, "alarm_final_data.csv")   #删除和网络无关
         alarm_out_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
         multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "level_multiclass_alarm_data.csv")
         # multicalss_alarm_out_file = os.path.join(multiclass_data_dir, "multiclass_alarm_data.csv")
+        alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
+        merged_final_file = os.path.join(predict_data_dir, "merged_final_data.csv")
+        merged_alertgroup_file = os.path.join(predict_data_dir, "merged_alertgroup_data.csv")
 
         # #处理原始告警数据
         # data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -57,7 +60,7 @@ def call_data_preprocessing_func(flag=False):
         #data_preprocessing.check_ping_alarm_data(fixed_alarm_data_file,final_alarm_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, multicalss_alarm_out_file)
+        # data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, multicalss_alarm_out_file)
 
         #处理原始告警数据
         #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -74,6 +77,8 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
+        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,merged_final_file,merged_alertgroup_file)
+
 
 #调用特征提取的函数
 def call_feature_extraction_func(flag=False):
@@ -144,7 +149,8 @@ def call_predict_model_func(flag=False):
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
         multiclass_data_file = os.path.join(multiclass_data_dir, "multiclass_data.csv")
         level_multiclass_data_file = os.path.join(multiclass_data_dir, "level_multiclass_data.csv")
-
+        merged_alertgroup_file = os.path.join(predict_data_dir, "merged_alertgroup_data.csv")
+        result_file = os.path.join(predict_data_dir, "result_data.csv")
         # #包含若干分类器的预测模型
         # print('no cpu')
         # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
@@ -159,7 +165,7 @@ def call_predict_model_func(flag=False):
         # print('only mem')
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
 
-        predict_model.classifiers_for_prediction(level_multiclass_data_file, model_save_file, history_predict_proba_file)
+        predict_model.classifiers_for_prediction(merged_alertgroup_file, model_save_file, history_predict_proba_file,result_file)
 
 
 def call_level_division_func(flag=False):
@@ -173,8 +179,8 @@ def call_level_division_func(flag=False):
 
         # level_division.hierarchical_clusterting()
         # level_division.get_cluster_data(cluster_series_data_file)
-        # level_division.hierarchical_clusterting(cluster_series_data_file,4)
-        level_division.get_correlation_by_hostname(correlation_data_file,hist_plot_dir,alarm_content_file,correlation_pair_file)
+        level_division.hierarchical_clusterting(cluster_series_data_file,5)
+        # level_division.get_correlation_by_hostname(correlation_data_file,hist_plot_dir,alarm_content_file,correlation_pair_file)
 
 
 
@@ -193,7 +199,7 @@ if __name__ == '__main__':
     call_data_preprocessing_func()
     call_feature_extraction_func()
 
-    call_predict_model_func()
+    call_predict_model_func(flag=True)
     call_anomaly_detection_func()
-    call_level_division_func(flag=True)
+    call_level_division_func()
 

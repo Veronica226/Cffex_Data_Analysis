@@ -329,6 +329,19 @@ def find_close_alarm(time_list,time):
         break
     return  flag
 
+#查看主机对应的业务类别，即alertgroup
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgroup_file):
+    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
+    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
+    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
+    df.drop_duplicates(inplace=True)
+    print(df)  #hostname 和 alertgroup的对应表
+    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
+                         right_index=False)
+    print(merged_df)
+    merged_df.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+
 
 
 
