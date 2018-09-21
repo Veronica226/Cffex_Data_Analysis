@@ -42,7 +42,7 @@ def knn_classifier(train_x, train_y):
 
 # Logistic Regression Classifier
 def logistic_regression_classifier(train_x, train_y):
-    model = LogisticRegression(C=10, penalty='l2',class_weight='balanced')
+    model = LogisticRegression(C=10, penalty='l2',dual=False,class_weight={0:0.2,1:0.8},solver='sag')
     model.fit(train_x, train_y)
     return model
 
@@ -62,10 +62,24 @@ def decision_tree_classifier(train_x, train_y):
 
 
 # GBDT(Gradient Boosting Decision Tree) Classifier
-def gradient_boosting_classifier(train_x, train_y):
-    model = GradientBoostingClassifier(n_estimators=200)
-    model.fit(train_x, train_y)
-    return model
+def gradient_boosting_classifier(train_x, train_y,test_y):
+    param_test1 = {'n_estimators': range(80, 201, 10)}
+    gsearch1 = GridSearchCV(estimator=GradientBoostingClassifier(learning_rate=0.1, min_samples_split=300,
+                                                                 min_samples_leaf=20, max_depth=8, max_features='sqrt',
+                                                                 subsample=0.8, random_state=10),
+                            param_grid=param_test1, scoring='roc_auc', iid=False, cv=5)
+    
+    gsearch1.fit(train_x, train_y)
+    print(gsearch1.grid_scores_)
+    print(gsearch1.best_params_)
+    print(gsearch1.best_score_)
+    print('2')
+    return gsearch1
+
+
+    # model = GradientBoostingClassifier(n_estimators=200,subsample=0.8,)
+    # model.fit(train_x, train_y)
+    # return model
 
 
 # SVM Classifier
@@ -273,10 +287,11 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
     model_save = {}
 
     test_classifiers_list = ['GBDT',
-                              'KNN',
-                             'LR',
-                             'RF',
-                             'DT']
+                              # 'KNN',
+                             # 'LR'
+                            # 'RF',
+                             #'DT'
+                                ]
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -302,16 +317,17 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
             for classifier in test_classifiers_list:
                 print('******************* %s ********************' % classifier)
                 start_time = time.time()
-                model = classifiers[classifier](train_x, train_y)
+                model = classifiers[classifier](train_x, train_y,test_y)
                 print('training took %fs!' % (time.time() - start_time))
-                predict = model.predict(test_x)
+
+                # predict = model.predict(test_x)
                 # print(predict)
                 #predict_proba = model.predict(test_x)
-                if(classifier == 'SVM'):
-                    test_x = MinMaxScaler().fit_transform(test_x)
+                # if(classifier == 'SVM'):
+                #     test_x = MinMaxScaler().fit_transform(test_x)
                 # predict_proba = model.predict_proba(test_x)[:,1]
-                if model_save_file != None:
-                    model_save[classifier] = model
+                # if model_save_file != None:
+                #     model_save[classifier] = model
 
                 # generate_ROC_plot(test_y, predict_proba, classifier
                 # generate_PR_plot(test_y, predict_proba, classifier)
@@ -330,24 +346,24 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 # plot_confusion_matrix(confusion_mat)
                 # print(classification_report(test_y,predict))
 
-
-                precision = metrics.precision_score(test_y, predict)
-                recall = metrics.recall_score(test_y, predict)
-                fbetascore = fbeta_score(test_y, predict, 0.5)
-                accuracy = metrics.accuracy_score(test_y, predict)
-                model_score = model.score(test_x, test_y)
-                print('precision: %.6f' % (100 *precision))
-                print('recall: %.6f' % (100 * recall))
-                print('f0.5score: %.6f' % (100 * fbetascore))
-                print('model score: %.6f' % (100*model_score))
-                print('accuracy: %.6f%%' % (100 * accuracy))
+#000000
+                # precision = metrics.precision_score(test_y, predict)
+                # recall = metrics.recall_score(test_y, predict)
+                # fbetascore = fbeta_score(test_y, predict, 0.5)
+                # accuracy = metrics.accuracy_score(test_y, predict)
+                # model_score = model.score(test_x, test_y)
+                # print('precision: %.6f' % (100 *precision))
+                # print('recall: %.6f' % (100 * recall))
+                # print('f0.5score: %.6f' % (100 * fbetascore))
+                # print('model score: %.6f' % (100*model_score))
+                # print('accuracy: %.6f%%' % (100 * accuracy))
 
                 # alertgroup_list.append(alertgroup)
                 # classifier_list.append(classifier)
                 # precision_list.append(precision)
                 # recall_list.append(recall)
-                result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
-
+                # result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
+#0000000
                 #
                 # precision = metrics.precision_score(test_y, predict, average="micro")
                 # recall = metrics.recall_score(test_y, predict, average="micro")
@@ -380,10 +396,10 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 # generate_learning_curve(data_file, model, classifier)
 
 
-            if model_save_file != None:
-                pickle.dump(model_save, open(model_save_file, 'wb'))
+            # if model_save_file != None:
+            #     pickle.dump(model_save, open(model_save_file, 'wb'))
 
-    result_df = pd.DataFrame(result_list,
-                             columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
-    print(result_df)
-    result_df.to_csv(result_file,sep=',',index=False)
+    # result_df = pd.DataFrame(result_list,
+    #                          columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
+    # print(result_df)
+    # result_df.to_csv(result_file,sep=',',index=False)
