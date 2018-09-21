@@ -208,13 +208,13 @@ def generate_compared_curve(test_y,predict_proba,classifier_name):
     plt.legend(loc="best")
     plt.title(classifier_name + '- compared')
     plt.show()
-    pr_plot_path = os.path.join(metric_figures_dir, classifier_name + '_compared-curve.png')
+    pr_plot_path = os.path.join(history_metric_figures_dir, classifier_name + '_compared-curve.png')
     fig.savefig(pr_plot_path, dpi=100)
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
     model_save = {}
 
-    test_classifiers_list = ['GBDT','KNN','LR','RF','DT']
+    test_classifiers_list = ['SVM']#'GBDT','KNN','LR','RF','DT']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -243,7 +243,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file):
 
         generate_ROC_plot(test_y, predict_proba, classifier)
         generate_PR_plot(test_y, predict_proba, classifier)
-        generate_learning_curve(data_file, model, classifier)
+        # generate_learning_curve(data_file, model, classifier)
 
         generate_compared_curve(test_y,predict_proba,classifier)
 
