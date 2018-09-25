@@ -28,6 +28,7 @@ while ~feof(fid)
     event_level_list(cnt) = tmp_alarm_level;
     cnt = cnt + 1;
 end
+fclose(fid);
 event_num = cnt - 1;
 
 cnt = 0;
@@ -43,6 +44,7 @@ while ~feof(fid)
     event_host_list(cnt) = tmp_host_name;
     cnt = cnt + 1;
 end
+fclose(fid);
 host_list_len = cnt - 1;
 
 list = dir([file_folder,'*.csv']);
@@ -107,6 +109,7 @@ for n=1:len
         N(1,cnt) = mem_max;
         O(1,cnt) = mem_min;
     end
+    fclose(fid1);
     num = 24 * 30;
     len = floor(cnt / num)-1;
     
