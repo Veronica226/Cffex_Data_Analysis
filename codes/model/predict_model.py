@@ -48,10 +48,46 @@ def logistic_regression_classifier(train_x, train_y):
 
 
 # Random Forest Classifier
-def random_forest_classifier(train_x, train_y):
-    model = RandomForestClassifier(n_estimators=8)
-    model.fit(train_x, train_y)
-    return model
+def random_forest_classifier(train_x, train_y,alertgroup):
+    alert_estimator_dict = {'Biz':100,'Mon':190,'Ora':150,'Trd':120}
+    depth_dict = {'Biz':19,'Mon':19,'Ora':17,'Trd':17}
+    split_dict= {'Biz':30,'Mon':10,'Ora':10,'Trd':60}
+    #默认参数
+    #  model = RandomForestClassifier(n_estimators=8)
+    # model = RandomForestClassifier(oob_score=True, random_state=10)
+    # model.fit(train_x, train_y)
+    # print(model.oob_score_)
+    # y_pre = model.predict_proba(train_x)[:,1]
+    # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
+#找最佳迭代次数 n_estimator
+    # param_test1 = {'n_estimators': range(10, 201, 10)}
+    # model = RandomForestClassifier(n_estimators= alert_estimator_dict[alertgroup],min_samples_split=60,
+    #              min_samples_leaf = 20, max_depth = depth_dict[alertgroup], max_features = 'sqrt', random_state = 10,oob_score=True)
+    #
+    # model.fit(train_x, train_y)
+    # print(model.oob_score_)
+    # y_pre = model.predict_proba(train_x)[:,1]
+    # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
+    # return model
+
+    # 找max_depth 和 min_samples_split
+    # param_test2 = {'max_depth': range(13,21,2), 'min_samples_split': range(10,51,10)}
+    # gsearch1 = GridSearchCV(estimator=RandomForestClassifier(n_estimators=alert_estimator_dict[alertgroup],
+    #                                                          min_samples_leaf=20, max_features='sqrt', oob_score=True,
+    #                                                          random_state=10),
+    #                         param_grid=param_test2, scoring='roc_auc', iid=False, cv=5)
+
+    #找min_samples_leaf
+    print('find max feature')
+    param_test3 = {'max_features':range(3,12,2)}
+    gsearch1 = GridSearchCV(estimator=RandomForestClassifier(n_estimators=alert_estimator_dict[alertgroup], max_depth=depth_dict[alertgroup],
+            min_samples_split=split_dict[alertgroup], min_samples_leaf=10,
+             oob_score = True, random_state = 10),
+            param_grid = param_test3, scoring = 'roc_auc', iid = False, cv = 5)
+    gsearch1.fit(train_x, train_y)
+    print(gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_)
+
+    return gsearch1
 
 
 # Decision Tree Classifier
@@ -68,7 +104,7 @@ def gradient_boosting_classifier(train_x, train_y,test_y):
                                                                  min_samples_leaf=20, max_depth=8, max_features='sqrt',
                                                                  subsample=0.8, random_state=10),
                             param_grid=param_test1, scoring='roc_auc', iid=False, cv=5)
-    
+
     gsearch1.fit(train_x, train_y)
     print(gsearch1.grid_scores_)
     print(gsearch1.best_params_)
@@ -286,10 +322,11 @@ def plot_confusion_matrix(confusion_mat):
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
     model_save = {}
 
-    test_classifiers_list = ['GBDT',
+
+    test_classifiers_list = [ #'GBDT',
                               # 'KNN',
                              # 'LR'
-                            # 'RF',
+                             'RF'
                              #'DT'
                                 ]
     classifiers = {'NB': naive_bayes_classifier,
@@ -306,7 +343,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
     # ignored_list = []
     all_data =  pd.read_csv(data_file, sep=',', dtype=str)
     for alertgroup,group in all_data.groupby('alertgroup'):
-        if alertgroup != 'Net':
+        if alertgroup != 'Net' :
+        # if alertgroup == 'Ora' :
             print(alertgroup)
             print(group['event'].value_counts())
             print('reading training and testing data...')
@@ -317,7 +355,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
             for classifier in test_classifiers_list:
                 print('******************* %s ********************' % classifier)
                 start_time = time.time()
-                model = classifiers[classifier](train_x, train_y,test_y)
+                model = classifiers[classifier](train_x, train_y,alertgroup)
                 print('training took %fs!' % (time.time() - start_time))
 
                 # predict = model.predict(test_x)
