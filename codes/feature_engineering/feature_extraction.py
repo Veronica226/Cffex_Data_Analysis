@@ -83,24 +83,24 @@ def file_filter(f_list):
     return saved_file_list
 
 def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
-    # feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
-    feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
-    loop = True
-    chunkSize = 1000
-    chunks = []
-    index = 0
-    while loop:
-        try:
-            print(index)
-            chunk = feature_data_df.get_chunk(chunkSize)
-            chunks.append(chunk)
-            index += 1
-
-        except StopIteration:
-            loop = False
-            print("Iteration is stopped.")
-    print('开始合并')
-    feature_data_df = pd.concat(chunks, ignore_index=True)
+    feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
+    # feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
+    # loop = True
+    # chunkSize = 1000
+    # chunks = []
+    # index = 0
+    # while loop:
+    #     try:
+    #         print(index)
+    #         chunk = feature_data_df.get_chunk(chunkSize)
+    #         chunks.append(chunk)
+    #         index += 1
+    #
+    #     except StopIteration:
+    #         loop = False
+    #         print("Iteration is stopped.")
+    # print('开始合并')
+    # feature_data_df = pd.concat(chunks, ignore_index=True)
 
     print(feature_data_df.shape)
     alarm_data_df = pd.read_csv(alarm_file, sep=',', dtype=str)  #13614*3
@@ -110,7 +110,7 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     #merge之后，有7997条告警数据，639199条非告警数据
     merged_df.to_csv(merged_data_file, sep=',', index=False)
     print(merged_df[merged_df['event']==0].shape)
-    # print(merged_df[merged_df['event'] == '1'].shape)
+    print(merged_df[merged_df['event'] == '1'].shape)
 
 def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
@@ -260,8 +260,8 @@ def generate_cluster_history_data(origin_dir, cluster_history_data_file):
         host_name_file_dict[host_name].append(file_name)
     # 这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
     host_name_list = host_name_file_dict.keys()
-
-    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+    # 创建空dataframe 存放merge之后的数据
+    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',
                                    'boot_max', 'boot_min', 'home_max', 'home_min',
                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min',

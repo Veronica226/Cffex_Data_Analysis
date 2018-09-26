@@ -48,14 +48,14 @@ def logistic_regression_classifier(train_x, train_y):
 
 
 # Random Forest Classifier
-def random_forest_classifier(train_x, train_y,alertgroup):
-    alert_estimator_dict = {'Biz':100,'Mon':190,'Ora':150,'Trd':120}
-    depth_dict = {'Biz':19,'Mon':19,'Ora':17,'Trd':17}
-    split_dict= {'Biz':30,'Mon':10,'Ora':10,'Trd':60}
+def random_forest_classifier(train_x, train_y):
+    # alert_estimator_dict = {'Biz':100,'Mon':190,'Ora':150,'Trd:120}
+    # depth_dict = {'Biz':19,'Mon':19,'Ora':17,'Trd':17}
+    # split_dict= {'Biz':30,'Mon':10,'Ora':10,'Trd':60}'
     #默认参数
-    #  model = RandomForestClassifier(n_estimators=8)
+    model = RandomForestClassifier(n_estimators=8)
     # model = RandomForestClassifier(oob_score=True, random_state=10)
-    # model.fit(train_x, train_y)
+    model.fit(train_x, train_y)
     # print(model.oob_score_)
     # y_pre = model.predict_proba(train_x)[:,1]
     # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
@@ -68,7 +68,7 @@ def random_forest_classifier(train_x, train_y,alertgroup):
     # print(model.oob_score_)
     # y_pre = model.predict_proba(train_x)[:,1]
     # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
-    # return model
+    return model
 
     # 找max_depth 和 min_samples_split
     # param_test2 = {'max_depth': range(13,21,2), 'min_samples_split': range(10,51,10)}
@@ -78,16 +78,16 @@ def random_forest_classifier(train_x, train_y,alertgroup):
     #                         param_grid=param_test2, scoring='roc_auc', iid=False, cv=5)
 
     #找min_samples_leaf
-    print('find max feature')
-    param_test3 = {'max_features':range(3,12,2)}
-    gsearch1 = GridSearchCV(estimator=RandomForestClassifier(n_estimators=alert_estimator_dict[alertgroup], max_depth=depth_dict[alertgroup],
-            min_samples_split=split_dict[alertgroup], min_samples_leaf=10,
-             oob_score = True, random_state = 10),
-            param_grid = param_test3, scoring = 'roc_auc', iid = False, cv = 5)
-    gsearch1.fit(train_x, train_y)
-    print(gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_)
-
-    return gsearch1
+    # print('find max feature')
+    # param_test3 = {'max_features':range(3,12,2)}
+    # gsearch1 = GridSearchCV(estimator=RandomForestClassifier(n_estimators=alert_estimator_dict[alertgroup], max_depth=depth_dict[alertgroup],
+    #         min_samples_split=split_dict[alertgroup], min_samples_leaf=10,
+    #          oob_score = True, random_state = 10),
+    #         param_grid = param_test3, scoring = 'roc_auc', iid = False, cv = 5)
+    # gsearch1.fit(train_x, train_y)
+    # print(gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_)
+    #
+    # return gsearch1
 
 
 # Decision Tree Classifier
@@ -99,32 +99,31 @@ def decision_tree_classifier(train_x, train_y):
 
 # GBDT(Gradient Boosting Decision Tree) Classifier
 
-def gradient_boosting_classifier(train_x, train_y,alertgroup):
-    alert_estimater_dict = {'Biz':320,'Mon':370,'Ora':320,'Trd':180}
-
-    # param_test1 = {'n_estimators': range(200, 401, 10)}
-    # gsearch1 = GridSearchCV(estimator=GradientBoostingClassifier(learning_rate=0.1, min_samples_split=300,
-    #                                                              min_samples_leaf=20, max_depth=8, max_features='sqrt',
-    #                                                              subsample=0.8, random_state=10),
-    #                         param_grid=param_test1, scoring='roc_auc', iid=False, cv=5)
-
-    param_test2 = {'max_depth': range(3, 14, 2), 'min_samples_split': range(100, 801, 200)}
-    gsearch2 = GridSearchCV(
-        estimator=GradientBoostingClassifier(learning_rate=0.1, n_estimators=alert_estimater_dict[alertgroup], min_samples_leaf=20,
-                                             max_features='sqrt', subsample=0.8, random_state=10),
-        param_grid=param_test2, scoring='roc_auc', iid=False, cv=5)
-    gsearch2.fit(train_x, train_y)
-    print(gsearch2.grid_scores_)
-    print(gsearch2.best_params_)
-    print(gsearch2.best_score_)
-    return gsearch2
+def gradient_boosting_classifier(train_x, train_y):
+    # alert_estimater_dict = {'Biz':320,'Mon':370,'Ora':320,'Trd':180}
     #
-    # model = GradientBoostingClassifier(n_estimators=200)
+    # # param_test1 = {'n_estimators': range(200, 401, 10)}
+    # # gsearch1 = GridSearchCV(estimator=GradientBoostingClassifier(learning_rate=0.1, min_samples_split=300,
+    # #                                                              min_samples_leaf=20, max_depth=8, max_features='sqrt',
+    # #                                                              subsample=0.8, random_state=10),
+    # #                         param_grid=param_test1, scoring='roc_auc', iid=False, cv=5)
+    #
+    # param_test2 = {'max_depth': range(3, 14, 2), 'min_samples_split': range(100, 801, 200)}
+    # gsearch2 = GridSearchCV(
+    #     estimator=GradientBoostingClassifier(learning_rate=0.1, n_estimators=alert_estimater_dict[alertgroup], min_samples_leaf=20,
+    #                                          max_features='sqrt', subsample=0.8, random_state=10),
+    #     param_grid=param_test2, scoring='roc_auc', iid=False, cv=5)
+    # gsearch2.fit(train_x, train_y)
+    # print(gsearch2.grid_scores_)
+    # print(gsearch2.best_params_)
+    # print(gsearch2.best_score_)
+    # return gsearch2
+    #
+    model = GradientBoostingClassifier(n_estimators=200)
 
-    # model = GradientBoostingClassifier(n_estimators=200,subsample=0.8,)
-
-    # model.fit(train_x, train_y)
-    # return model
+    # model = GradientBoostingClassifier(n_estimators=200,subsample=0.8)
+    model.fit(train_x, train_y)
+    return model
 
 
 # SVM Classifier
@@ -152,6 +151,30 @@ def svm_cross_validation(train_x, train_y):
     return model
 
 def get_data(data_df,split):
+    # 创建空dataframe 存放merge之后的数据
+    # col_list = [
+    #            'cpu_avg', 'cpu_maxt', 'cpu_max', 'cpu_mint', 'cpu_min',
+    #            # 'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
+    #            # 'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
+    #            # 'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
+    #            # 'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
+    #            # 'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
+    #            'mem_avg', 'mem_maxt', 'mem_max', 'mem_mint', 'mem_min',
+    #            'cpu_avg_1', 'cpu_maxt_1', 'cpu_max_1', 'cpu_mint_1', 'cpu_min_1',
+    #            # 'boot_avg_1', 'boot_maxt_1', 'boot_max_1', 'boot_mint_1', 'boot_min_1',
+    #            # 'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
+    #            # 'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
+    #            # 'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
+    #            # 'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
+    #            'mem_avg_1', 'mem_maxt_1', 'mem_max_1', 'mem_mint_1', 'mem_min_1',
+    #            'cpu_avg_2', 'cpu_maxt_2', 'cpu_max_2', 'cpu_mint_2', 'cpu_min_2',  # 创建空dataframe 存放merge之后的数据
+    #            # 'boot_avg_2', 'boot_maxt_2', 'boot_max_2', 'boot_mint_2', 'boot_min_2',
+    #            # 'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
+    #            # 'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
+    #            # 'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
+    #            # 'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
+    #            'mem_avg_2', 'mem_maxt_2', 'mem_max_2', 'mem_mint_2', 'mem_min_2',
+    #             'alarm_count','event']
     col_list = ['cpu_max', 'cpu_min',
                 # 'boot_max', 'boot_min', 'home_max', 'home_min',
                 # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
@@ -330,11 +353,11 @@ def plot_confusion_matrix(confusion_mat):
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
     model_save = {}
-    test_classifiers_list = ['GBDT'
-                             #  'KNN',
-                             # 'LR',
-                             # 'RF',
-                             # 'DT'
+    test_classifiers_list = ['GBDT',
+                              'KNN',
+                             'LR',
+                             'RF',
+                             'DT'
                              ]
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
@@ -362,17 +385,17 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
             for classifier in test_classifiers_list:
                 print('******************* %s ********************' % classifier)
                 start_time = time.time()
-                model = classifiers[classifier](train_x, train_y,alertgroup)
+                model = classifiers[classifier](train_x, train_y)
                 print('training took %fs!' % (time.time() - start_time))
 
-                # predict = model.predict(test_x)
-                # print(predict)
-                #predict_proba = model.predict(test_x)
-                # if(classifier == 'SVM'):
-                #     test_x = MinMaxScaler().fit_transform(test_x)
+                predict = model.predict(test_x)
+                print(predict)
+                # predict_proba = model.predict(test_x)
+                if(classifier == 'SVM'):
+                    test_x = MinMaxScaler().fit_transform(test_x)
                 # predict_proba = model.predict_proba(test_x)[:,1]
-                # if model_save_file != None:
-                #     model_save[classifier] = model
+                if model_save_file != None:
+                    model_save[classifier] = model
 
 
                 #画图
@@ -396,22 +419,22 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
 #评价指标
 #000000
 
-                # precision = metrics.precision_score(test_y, predict)
-                # recall = metrics.recall_score(test_y, predict)
-                # fbetascore = fbeta_score(test_y, predict, 0.5)
-                # accuracy = metrics.accuracy_score(test_y, predict)
-                # model_score = model.score(test_x, test_y)
-                # print('precision: %.6f' % (100 *precision))
-                # print('recall: %.6f' % (100 * recall))
-                # print('f0.5score: %.6f' % (100 * fbetascore))
-                # print('model score: %.6f' % (100*model_score))
-                # print('accuracy: %.6f%%' % (100 * accuracy))
+                precision = metrics.precision_score(test_y, predict)
+                recall = metrics.recall_score(test_y, predict)
+                fbetascore = fbeta_score(test_y, predict, 0.5)
+                accuracy = metrics.accuracy_score(test_y, predict)
+                model_score = model.score(test_x, test_y)
+                print('precision: %.6f' % (100 *precision))
+                print('recall: %.6f' % (100 * recall))
+                print('f0.5score: %.6f' % (100 * fbetascore))
+                print('model score: %.6f' % (100*model_score))
+                print('accuracy: %.6f%%' % (100 * accuracy))
 
                 # alertgroup_list.append(alertgroup)
                 # classifier_list.append(classifier)
                 # precision_list.append(precision)
                 # recall_list.append(recall)
-                # result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
+                result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
 
 
                 #多分类评价指标
@@ -437,11 +460,11 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
 
     #
 
-            # if model_save_file != None:
-            #     pickle.dump(model_save, open(model_save_file, 'wb'))
+            if model_save_file != None:
+                pickle.dump(model_save, open(model_save_file, 'wb'))
 
-    # result_df = pd.DataFrame(result_list,
-    #                          columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
-    # print(result_df)
-    # result_df.to_csv(result_file,sep=',',index=False)
+    result_df = pd.DataFrame(result_list,
+                             columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
+    print(result_df)
+    result_df.to_csv(result_file,sep=',',index=False)
 

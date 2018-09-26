@@ -156,6 +156,8 @@ def call_predict_model_func(flag=False):
         level_multiclass_data_file = os.path.join(multiclass_data_dir, "level_multiclass_data.csv")
         merged_alertgroup_file = os.path.join(predict_data_dir, "merged_alertgroup_data.csv")
         result_file = os.path.join(predict_data_dir, "result_data.csv")
+        new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
+        new_result_file = os.path.join(new_predict_data_dir, "new_result_data.csv")
         # #包含若干分类器的预测模型
         # print('no cpu')
         # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
@@ -202,9 +204,10 @@ def call_anomaly_detection_func(flag=False):
 
 if __name__ == '__main__':
     call_data_preprocessing_func()
-    call_feature_extraction_func(flag=True)
+    call_feature_extraction_func()
+    print('最大最小时间、平均值、alarm_count')
+    call_predict_model_func(flag=True)
 
-    call_predict_model_func()
     call_anomaly_detection_func()
     call_level_division_func()
 
