@@ -152,49 +152,74 @@ def svm_cross_validation(train_x, train_y):
 
 def get_data(data_df,split):
     # 创建空dataframe 存放merge之后的数据
-    # col_list = [
-    #            'cpu_avg', 'cpu_maxt', 'cpu_max', 'cpu_mint', 'cpu_min',
-    #            # 'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
-    #            # 'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
-    #            # 'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
-    #            # 'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
-    #            # 'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
-    #            'mem_avg', 'mem_maxt', 'mem_max', 'mem_mint', 'mem_min',
-    #            'cpu_avg_1', 'cpu_maxt_1', 'cpu_max_1', 'cpu_mint_1', 'cpu_min_1',
-    #            # 'boot_avg_1', 'boot_maxt_1', 'boot_max_1', 'boot_mint_1', 'boot_min_1',
-    #            # 'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
-    #            # 'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
-    #            # 'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
-    #            # 'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
-    #            'mem_avg_1', 'mem_maxt_1', 'mem_max_1', 'mem_mint_1', 'mem_min_1',
-    #            'cpu_avg_2', 'cpu_maxt_2', 'cpu_max_2', 'cpu_mint_2', 'cpu_min_2',  # 创建空dataframe 存放merge之后的数据
-    #            # 'boot_avg_2', 'boot_maxt_2', 'boot_max_2', 'boot_mint_2', 'boot_min_2',
-    #            # 'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
-    #            # 'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
-    #            # 'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
-    #            # 'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
-    #            'mem_avg_2', 'mem_maxt_2', 'mem_max_2', 'mem_mint_2', 'mem_min_2',
-    #             'alarm_count','event']
-    col_list = ['cpu_max', 'cpu_min',
-                # 'boot_max', 'boot_min', 'home_max', 'home_min',
-                # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                 # 'tmp_max', 'tmp_min',
-                  'mem_max', 'mem_min',
-                   'cpu_max_1', 'cpu_min_1',
-                    # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
-                    # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
-                    # 'tmp_max_1', 'tmp_min_1',
-                  'mem_max_1', 'mem_min_1',
-                  'cpu_max_2', 'cpu_min_2',
-                  # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
-                  # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
-                  # 'tmp_max_2', 'tmp_min_2',
-                    'mem_max_2', 'mem_min_2',
-                     'event']
+    col_list = [
+               'cpu_avg',
+                # 'cpu_maxt',
+                'cpu_max',
+                # 'cpu_mint',
+                'cpu_min',
+               # 'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
+               # 'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
+               # 'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
+               # 'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
+               # 'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
+               'mem_avg',
+                # 'mem_maxt',
+                'mem_max',
+                # 'mem_mint',
+                'mem_min',
+               'cpu_avg_1',
+                # 'cpu_maxt_1',
+                'cpu_max_1',
+                # 'cpu_mint_1',
+                'cpu_min_1',
+               # 'boot_avg_1', 'boot_maxt_1', 'boot_max_1', 'boot_mint_1', 'boot_min_1',
+               # 'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
+               # 'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
+               # 'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
+               # 'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
+               'mem_avg_1',
+                # 'mem_maxt_1',
+                'mem_max_1',
+                # 'mem_mint_1',
+                'mem_min_1',
+               'cpu_avg_2',
+                # 'cpu_maxt_2',
+                'cpu_max_2',
+                # 'cpu_mint_2',
+                'cpu_min_2',  # 创建空dataframe 存放merge之后的数据
+               # 'boot_avg_2', 'boot_maxt_2', 'boot_max_2', 'boot_mint_2', 'boot_min_2',
+               # 'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
+               # 'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
+               # 'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
+               # 'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
+               'mem_avg_2',
+                # 'mem_maxt_2',
+                'mem_max_2',
+                # 'mem_mint_2',
+                'mem_min_2',
+                'alarm_count','event','cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2']
+    # col_list = ['cpu_max', 'cpu_min',
+    #             # 'boot_max', 'boot_min', 'home_max', 'home_min',
+    #             # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+    #              # 'tmp_max', 'tmp_min',
+    #               'mem_max', 'mem_min',
+    #                'cpu_max_1', 'cpu_min_1',
+    #                 # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
+    #                 # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
+    #                 # 'tmp_max_1', 'tmp_min_1',
+    #               'mem_max_1', 'mem_min_1',
+    #               'cpu_max_2', 'cpu_min_2',
+    #               # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
+    #               # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
+    #               # 'tmp_max_2', 'tmp_min_2',
+    #                 'mem_max_2', 'mem_min_2',
+    #                  'event']
     data = data_df[col_list]
     data = data.convert_objects(convert_numeric=True)
     # for col in col_list:
     #     data[col] = pd.to_numeric(data[col], errors='coerce')
+    print(data)
     feature_data = data.drop('event', axis=1)
     label_data = data.event
     if split==True:
@@ -391,8 +416,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 predict = model.predict(test_x)
                 print(predict)
                 # predict_proba = model.predict(test_x)
-                if(classifier == 'SVM'):
-                    test_x = MinMaxScaler().fit_transform(test_x)
+                # if(classifier == 'SVM'):
+                #     test_x = MinMaxScaler().fit_transform(test_x)
                 # predict_proba = model.predict_proba(test_x)[:,1]
                 if model_save_file != None:
                     model_save[classifier] = model
