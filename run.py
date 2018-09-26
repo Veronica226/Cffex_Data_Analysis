@@ -105,6 +105,8 @@ def call_feature_extraction_func(flag=False):
         disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
 
+        if not os.path.exists(cluster_data_dir):
+            os.makedirs(cluster_data_dir)
         cluster_history_data_file = os.path.join(cluster_data_dir, "cluster_history_data.csv")
         alarm_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
         cluster_series_data_file= os.path.join(cluster_data_dir, "cluster_series_data.csv")
@@ -131,7 +133,7 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.delete_feature(merged_final_file,no_disk_file)
 
         #生成聚类所用的特征历史数据
-        # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
+        feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
 
         # feature_extraction.generate_cluster_data(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
