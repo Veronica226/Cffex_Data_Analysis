@@ -67,7 +67,7 @@ def generate_plot_data(origin_dir, output_dir):
         device_name = file_name_list[-1]  #设备名称是第-1个元素（list从末尾往前数）
         print('host_name = {0}, device_name = {1}'.format(host_name, device_name))
         if file_name.endswith("disk"):  # 磁盘文件中diskname字段有不同的磁盘名
-            data = pd.read_csv(file_path, usecols=['archour','diskname', 'maxvalue','minvalue'], dtype=str)
+            data = pd.read_csv(file_path, usecols=['archour','avgvalue','diskname', 'maxtime','maxvalue','mintime','minvalue'], dtype=str)
             for diskname, group in data.groupby('diskname'):   #对diskname分组存储到不同文件中
                 disk_name = 'rt' if len(diskname) == 1 and diskname[0] == '/' else diskname[1:]  #将主机的根目录用rt表示
                 disk_name = disk_name.replace('/', '_')
@@ -79,7 +79,7 @@ def generate_plot_data(origin_dir, output_dir):
         else:
             output_file_name = host_name+ '_' + device_name + '.csv'
             output_file = os.path.join(output_dir, output_file_name) #主机名 部件名
-            data = pd.read_csv(file_path,usecols=['archour','maxvalue','minvalue'], dtype=str)  #时间 最大值 最小值
+            data = pd.read_csv(file_path,usecols=['archour','avgvalue', 'maxtime','maxvalue','mintime','minvalue'], dtype=str)  #时间 最大值 最小值
             data['archour'] = data['archour'].apply(trans_date)
             data.to_csv(output_file, sep=',', index=False, header=False)
     print('generate plot data finished!')
@@ -95,9 +95,9 @@ def insert_missing_data(origin_dir, output_dir):
         output_file_path = os.path.join(output_dir, file_name + '.csv')
 
         print(file)
-        df = pd.read_csv(file_path, sep=',', header=None, names=['archour', 'maxvalue', 'minvalue'], dtype=str)
+        df = pd.read_csv(file_path, sep=',', header=None, names=['archour','avgvalue', 'maxtime','maxvalue','mintime','minvalue'], dtype=str)
         df['archour'] = df['archour'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
-        df[['maxvalue', 'minvalue']] = df[['maxvalue', 'minvalue']].apply(np.float64)
+        df[['avgvalue', 'maxtime','maxvalue','mintime','minvalue']] = df[['avgvalue', 'maxtime','maxvalue','mintime','minvalue']].apply(np.float64)
         if df.shape[0] == 139 * 24:
             df.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
             continue
@@ -138,13 +138,21 @@ def insert_missing_data(origin_dir, output_dir):
                     now_time = front_time_data['archour'] + timedelta(hours=1)
                     now_max_value = (front_time_data['maxvalue'] + nxt_time_data['maxvalue']) / 2
                     now_min_value = (front_time_data['minvalue'] + nxt_time_data['minvalue']) / 2
+                    now_avgvalue = (now_max_value+now_min_value) / 2
+                    now_max_time = (front_time_data['maxtime'] + nxt_time_data['maxtime']) / 2
+                    now_min_time = (front_time_data['mintime'] + nxt_time_data['mintime']) / 2
                 else: #最后一天的数据
                     front_time_data = day_df.loc[day_df.shape[0] - 1]
                     pre_front_time_data = day_df.loc[day_df.shape[0] - 2]
                     now_time = front_time_data['archour'] + timedelta(hours=1)
                     now_max_value = (front_time_data['maxvalue'] + pre_front_time_data['maxvalue']) / 2
                     now_min_value = (front_time_data['minvalue'] + pre_front_time_data['minvalue']) / 2
-                hour_data_dict = {'archour': now_time, 'day': datetime(now_time.year, now_time.month, now_time.day) , 'maxvalue': now_max_value, 'minvalue': now_min_value}
+                    now_avgvalue = (now_max_value + now_min_value) / 2
+                    now_max_time = (front_time_data['maxtime'] + pre_front_time_data['maxtime']) / 2
+                    now_min_time = (front_time_data['mintime'] + pre_front_time_data['mintime']) / 2
+
+                hour_data_dict = {'archour': now_time, 'day': datetime(now_time.year, now_time.month, now_time.day)
+                    ,'avgvalue':now_avgvalue,'maxtime':now_max_time, 'maxvalue': now_max_value,'mintime':now_min_time, 'minvalue': now_min_value}
                 day_data_list.append(hour_data_dict)
 
             if(len(day_data_list) == 24):
@@ -168,8 +176,12 @@ def insert_missing_data(origin_dir, output_dir):
                     for hour_idx in range(1, now_time.hour - front_time.hour):
                         missing_time = front_time + timedelta(hours=hour_idx)
                         missing_max_value = (day_data_list[i - 1]['maxvalue'] + day_data_list[i]['maxvalue']) / 2
-                        missing_min_value = (day_data_list[i - 1]['maxvalue'] + day_data_list[i]['maxvalue']) / 2
-                        hour_data_dict = {'archour': missing_time, 'day': datetime(missing_time.year, missing_time.month, missing_time.day), 'maxvalue': missing_max_value, 'minvalue': missing_min_value}
+                        missing_min_value = (day_data_list[i - 1]['minvalue'] + day_data_list[i]['minvalue']) / 2
+                        missing_avg_value = (missing_max_value + missing_min_value) / 2
+                        missing_max_time = (day_data_list[i - 1]['maxtime'] + day_data_list[i]['maxtime']) / 2
+                        missing_min_time = (day_data_list[i - 1]['mintime'] + day_data_list[i]['mintime']) / 2
+                        hour_data_dict = {'archour': missing_time, 'day': datetime(missing_time.year, missing_time.month, missing_time.day),
+                                          'avgvalue':missing_avg_value,'maxtime':missing_max_time, 'maxvalue': missing_max_value, 'mintime':missing_min_time,'minvalue': missing_min_value}
                         day_data_res.append(hour_data_dict)
                     # 这里要记着也插入当前时刻的数据
                     day_data_res.append(day_data_list[i])
@@ -178,15 +190,20 @@ def insert_missing_data(origin_dir, output_dir):
                 for hour_idx in range(1, 24 - now_time.hour):
                     missing_time = now_time + timedelta(hours=hour_idx)
                     missing_max_value = (day_data_res[-1]['maxvalue'] + day_data_list[-2]['maxvalue']) / 2
-                    missing_min_value = (day_data_res[-1]['maxvalue'] + day_data_list[-2]['maxvalue']) / 2
-                    hour_data_dict = {'archour': missing_time,'day': datetime(missing_time.year, missing_time.month, missing_time.day), 'maxvalue': missing_max_value, 'minvalue': missing_min_value}
+                    missing_min_value = (day_data_res[-1]['minvalue'] + day_data_list[-2]['maxvalue']) / 2
+                    missing_avg_value = (missing_max_value + missing_min_value) / 2
+                    missing_max_time = (day_data_res[-1]['maxtime'] + day_data_list[-2]['maxtime']) / 2
+                    missing_min_time = (day_data_res[-1]['mintime'] + day_data_list[-2]['mintime']) / 2
+                    hour_data_dict = {'archour': missing_time,'day': datetime(missing_time.year, missing_time.month, missing_time.day),
+                                      'avgvalue':missing_avg_value,'maxtime':missing_max_time, 'maxvalue': missing_max_value, 'mintime':missing_min_time,'minvalue': missing_min_value}
                     day_data_res.append(hour_data_dict)
             #print('data_res= ', len(day_data_res))
             if(is_exception):  #相邻两天之间间隔了好几天，比如ywn_monitor1主机在2018年2月4日的数据下一天是2月8日
                 except_day_data_list = day_data_res.copy()
             df_out = df_out.append(pd.DataFrame(day_data_res))
         df_out.drop(['day'], axis=1, inplace=True)
-        df_out.to_csv(output_file_path, sep=',', index=False, header=False, float_format='%.1f')
+        df_out.to_csv(output_file_path, sep=',', index=False, header=False)
+                      # , float_format='%.1f')
 
 
 #检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
@@ -203,13 +220,17 @@ def check_completeness(origin_dir):
 def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
     node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
+                       usecols=['node_alias','alarm_count','last_time', 'alarm_level'])
     data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
     data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
-    # data['alarm_level'] = '1'    #将事件级别全部赋值为1
-    data.columns = ['hostname','category', 'archour','event','content']
+    data['alarm_level'] = '1'    #将事件级别全部赋值为1
+    data.columns = ['hostname','alarm_count', 'archour','event']
+    # data.columns = ['hostname', 'category', 'archour', 'event', 'content']
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)
+
 
 def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应node_alias 也就是主机名
     node_value = node_dict[node_key]
@@ -224,7 +245,6 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
         group.drop(['hostname'], axis=1, inplace=True)
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
-
 
 #简单方法：告警事件文件中直接剔除ping告警数据
 def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
@@ -325,6 +345,19 @@ def find_close_alarm(time_list,time):
             flag = 1
         break
     return  flag
+
+#查看主机对应的业务类别，即alertgroup
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgroup_file):
+    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
+    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
+    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
+    df.drop_duplicates(inplace=True)
+    print(df)  #hostname 和 alertgroup的对应表
+    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
+                         right_index=False)
+    print(merged_df)
+    merged_df.to_csv(merged_alertgroup_file,sep=',',index=False)
+
 
 
 
