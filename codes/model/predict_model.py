@@ -1,8 +1,10 @@
 import time
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 import matplotlib.pyplot as plt
 import random
+import lightgbm as lgb
 
 
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score,confusion_matrix,classification_report
@@ -125,6 +127,47 @@ def gradient_boosting_classifier(train_x, train_y):
     model.fit(train_x, train_y)
     return model
 
+def xgboost_classifier(train_x,train_y):
+    dtrain = xgb.Dmatrix(train_x,train_y)
+    params = {'booster': 'gbtree',
+              'objective': 'binary:logistic',
+              'eval_metric': 'auc',
+              'max_depth': 4,
+              'lambda': 10,
+              'subsample': 0.75,
+              'colsample_bytree': 0.75,
+              'min_child_weight': 2,
+              'eta': 0.025,
+              'seed': 0,
+              'nthread': 8,
+              'silent': 1}
+    watchlist = [(dtrain, 'train')]
+    bst = xgb.train(params, dtrain, num_boost_round=100, evals=watchlist)
+    return bst
+
+# def lightgbm_classifier(train_x,train_y):
+#     lgb_train = lgb.Dataset(train_x,train_y,free_raw_data=False)
+#     params = {
+#     'boosting_type': 'gbdt',
+#     'boosting': 'dart',
+#     'objective': 'binary',
+#     'metric': 'binary_logloss',
+#     'learning_rate': 0.01,
+#     'num_leaves': 25,
+#     'max_depth': 3,
+#     'max_bin': 10,
+#     'min_data_in_leaf': 8,
+#     'feature_fraction': 0.6,
+#     'bagging_fraction': 1,
+#     'bagging_freq': 0,
+#     'lambda_l1': 0,
+#     'lambda_l2': 0,
+#     'min_split_gain': 0}
+#     gbm = lgb.train(params,lgb_train,num_boost_round=2000,       # 迭代次数
+#                valid_sets=lgb_eval,        # 验证集
+#                early_stopping_rounds=30)   # 早停系数)
+
+
 
 # SVM Classifier
 def svm_classifier(train_x, train_y):
@@ -217,8 +260,6 @@ def get_data(data_df,split):
     #                  'event']
     data = data_df[col_list]
     data = data.convert_objects(convert_numeric=True)
-    # for col in col_list:
-    #     data[col] = pd.to_numeric(data[col], errors='coerce')
     print(data)
     feature_data = data.drop('event', axis=1)
     label_data = data.event
@@ -383,7 +424,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                              'LR',
                              'RF',
                              'DT'
-                             ]
+                             'XGB']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -391,7 +432,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                    'DT': decision_tree_classifier,
                    'SVM': svm_classifier,
                    'SVMCV': svm_cross_validation,
-                   'GBDT': gradient_boosting_classifier
+                   'GBDT': gradient_boosting_classifier,
+                   'XGB':xgboost_classifier
                    }
 
     result_list = []
