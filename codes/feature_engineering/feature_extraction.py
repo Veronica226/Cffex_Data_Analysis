@@ -83,24 +83,24 @@ def file_filter(f_list):
     return saved_file_list
 
 def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
-    # feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
-    feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
-    loop = True
-    chunkSize = 1000
-    chunks = []
-    index = 0
-    while loop:
-        try:
-            print(index)
-            chunk = feature_data_df.get_chunk(chunkSize)
-            chunks.append(chunk)
-            index += 1
-
-        except StopIteration:
-            loop = False
-            print("Iteration is stopped.")
-    print('开始合并')
-    feature_data_df = pd.concat(chunks, ignore_index=True)
+    feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
+    # feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
+    # loop = True
+    # chunkSize = 1000
+    # chunks = []
+    # index = 0
+    # while loop:
+    #     try:
+    #         print(index)
+    #         chunk = feature_data_df.get_chunk(chunkSize)
+    #         chunks.append(chunk)
+    #         index += 1
+    #
+    #     except StopIteration:
+    #         loop = False
+    #         print("Iteration is stopped.")
+    # print('开始合并')
+    # feature_data_df = pd.concat(chunks, ignore_index=True)
 
     print(feature_data_df.shape)
     alarm_data_df = pd.read_csv(alarm_file, sep=',', dtype=str)  #13614*3
