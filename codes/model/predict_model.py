@@ -21,8 +21,10 @@ from sklearn import svm,datasets,metrics
 from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
 from settings import *
+from sklearn.model_selection import KFold
 import pickle
 import pandas as pd
+from xgboost import *
 
 ######################################################################################
 #Author: 王靖文
@@ -37,9 +39,28 @@ def naive_bayes_classifier(train_x, train_y):
 
 # KNN Classifier
 def knn_classifier(train_x, train_y):
-    model = KNeighborsClassifier()
-    model.fit(train_x, train_y)
-    return model
+    arr_x = train_x.values
+    arr_y = train_y.values
+    kf = KFold(n_splits=3)
+    max_acc = 0
+    max_fs = 0
+    best_model = None
+    for train_index, test_index in kf.split(arr_x):
+        model = KNeighborsClassifier()
+        train_x = arr_x[train_index]
+        train_y = arr_y[train_index]
+        test_x = arr_x[test_index]
+        test_y = arr_y[test_index]
+        model.fit(train_x, train_y)
+        predict = model.predict(test_x)
+        acc = metrics.accuracy_score(test_y, predict)
+        fbetascore = fbeta_score(test_y, predict, 0.5)
+        print('acc:'+ str(acc)+'  f0.5score:'+str(fbetascore))
+        if fbetascore > max_fs:
+            max_fs = fbetascore
+            best_model = model
+    return best_model
+
 
 
 # Logistic Regression Classifier
@@ -51,17 +72,38 @@ def logistic_regression_classifier(train_x, train_y):
 
 # Random Forest Classifier
 def random_forest_classifier(train_x, train_y):
+    arr_x = train_x.values
+    arr_y = train_y.values
+    kf = KFold(n_splits = 5)
+    max_acc=0
+    max_fs = 0
+    best_model = None
+    for train_index,test_index in kf.split(arr_x):
+        model = RandomForestClassifier(n_estimators=8,max_depth=13, n_jobs=-1) # max_depth > 10
+        # model = RandomForestClassifier(oob_score=True, random_state=10)
+        train_x = arr_x[train_index]
+        train_y = arr_y[train_index]
+        test_x = arr_x[test_index]
+        test_y = arr_y[test_index]
+        model.fit(train_x, train_y)
+        predict = model.predict(test_x)
+        acc = metrics.accuracy_score(test_y,predict)
+        fbetascore = fbeta_score(test_y, predict, 0.5)
+        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        if fbetascore > max_fs:
+            max_fs = fbetascore
+            best_model = model
+    return best_model
+
     # alert_estimator_dict = {'Biz':100,'Mon':190,'Ora':150,'Trd:120}
     # depth_dict = {'Biz':19,'Mon':19,'Ora':17,'Trd':17}
     # split_dict= {'Biz':30,'Mon':10,'Ora':10,'Trd':60}'
     #默认参数
-    model = RandomForestClassifier(n_estimators=8)
-    # model = RandomForestClassifier(oob_score=True, random_state=10)
-    model.fit(train_x, train_y)
+    # print(model.feature_importances_)
     # print(model.oob_score_)
     # y_pre = model.predict_proba(train_x)[:,1]
     # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
-#找最佳迭代次数 n_estimator
+    #找最佳迭代次数 n_estimator
     # param_test1 = {'n_estimators': range(10, 201, 10)}
     # model = RandomForestClassifier(n_estimators= alert_estimator_dict[alertgroup],min_samples_split=60,
     #              min_samples_leaf = 20, max_depth = depth_dict[alertgroup], max_features = 'sqrt', random_state = 10,oob_score=True)
@@ -70,7 +112,7 @@ def random_forest_classifier(train_x, train_y):
     # print(model.oob_score_)
     # y_pre = model.predict_proba(train_x)[:,1]
     # print("AUC Score (Train): %f" % metrics.roc_auc_score(train_y, y_pre))
-    return model
+    # return model
 
     # 找max_depth 和 min_samples_split
     # param_test2 = {'max_depth': range(13,21,2), 'min_samples_split': range(10,51,10)}
@@ -94,9 +136,28 @@ def random_forest_classifier(train_x, train_y):
 
 # Decision Tree Classifier
 def decision_tree_classifier(train_x, train_y):
-    model = tree.DecisionTreeClassifier()
-    model.fit(train_x, train_y)
-    return model
+
+    arr_x = train_x.values
+    arr_y = train_y.values
+    kf = KFold(n_splits=3)
+    max_acc = 0
+    max_fs = 0
+    best_model = None
+    for train_index, test_index in kf.split(arr_x):
+        model  = tree.DecisionTreeClassifier()
+        train_x = arr_x[train_index]
+        train_y = arr_y[train_index]
+        test_x = arr_x[test_index]
+        test_y = arr_y[test_index]
+        model.fit(train_x, train_y)
+        predict = model.predict(test_x)
+        acc = metrics.accuracy_score(test_y, predict)
+        fbetascore = fbeta_score(test_y, predict, 0.5)
+        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        if fbetascore > max_fs:
+            max_fs = fbetascore
+            best_model = model
+    return best_model
 
 
 # GBDT(Gradient Boosting Decision Tree) Classifier
@@ -121,11 +182,30 @@ def gradient_boosting_classifier(train_x, train_y):
     # print(gsearch2.best_score_)
     # return gsearch2
     #
-    model = GradientBoostingClassifier(n_estimators=200)
+
 
     # model = GradientBoostingClassifier(n_estimators=200,subsample=0.8)
-    model.fit(train_x, train_y)
-    return model
+    arr_x = train_x.values
+    arr_y = train_y.values
+    kf = KFold(n_splits=3)
+    max_acc = 0
+    max_fs = 0
+    best_model = None
+    for train_index, test_index in kf.split(arr_x):
+        model = GradientBoostingClassifier(n_estimators=200)
+        train_x = arr_x[train_index]
+        train_y = arr_y[train_index]
+        test_x = arr_x[test_index]
+        test_y = arr_y[test_index]
+        model.fit(train_x, train_y)
+        predict = model.predict(test_x)
+        acc = metrics.accuracy_score(test_y, predict)
+        fbetascore = fbeta_score(test_y, predict, 0.5)
+        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        if fbetascore > max_fs:
+            max_fs = fbetascore
+            best_model = model
+    return best_model
 
 def xgboost_classifier(train_x,train_y):
     dtrain = xgb.Dmatrix(train_x,train_y)
@@ -196,7 +276,7 @@ def svm_cross_validation(train_x, train_y):
 def get_data(data_df,split):
     # 创建空dataframe 存放merge之后的数据
     col_list = [
-               'cpu_avg',
+                'cpu_avg',
                 # 'cpu_maxt',
                 'cpu_max',
                 # 'cpu_mint',
@@ -206,12 +286,12 @@ def get_data(data_df,split):
                # 'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
                # 'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
                # 'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
-               'mem_avg',
+                'mem_avg',
                 # 'mem_maxt',
                 'mem_max',
                 # 'mem_mint',
                 'mem_min',
-               'cpu_avg_1',
+                'cpu_avg_1',
                 # 'cpu_maxt_1',
                 'cpu_max_1',
                 # 'cpu_mint_1',
@@ -221,12 +301,12 @@ def get_data(data_df,split):
                # 'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
                # 'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
                # 'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
-               'mem_avg_1',
+                'mem_avg_1',
                 # 'mem_maxt_1',
                 'mem_max_1',
                 # 'mem_mint_1',
                 'mem_min_1',
-               'cpu_avg_2',
+                'cpu_avg_2',
                 # 'cpu_maxt_2',
                 'cpu_max_2',
                 # 'cpu_mint_2',
@@ -236,12 +316,14 @@ def get_data(data_df,split):
                # 'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
                # 'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
                # 'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
-               'mem_avg_2',
+                'mem_avg_2',
                 # 'mem_maxt_2',
                 'mem_max_2',
-                # 'mem_mint_2',
+                 # 'mem_mint_2',
                 'mem_min_2',
-                'alarm_count','event','cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2']
+                # 'alarm_count',
+                'event',
+                'cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2']
     # col_list = ['cpu_max', 'cpu_min',
     #             # 'boot_max', 'boot_min', 'home_max', 'home_min',
     #             # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
@@ -260,12 +342,16 @@ def get_data(data_df,split):
     #                  'event']
     data = data_df[col_list]
     data = data.convert_objects(convert_numeric=True)
-    print(data)
+    # print(data)
     feature_data = data.drop('event', axis=1)
     label_data = data.event
+
     if split==True:
-        return train_test_split(feature_data,label_data,test_size=0.2,random_state=800)
-        #return feature_data, test_feature_data, label_data, test_label_data
+        # train_x, valid_test_x,train_y,valid_test_y = train_test_split(feature_data,label_data,test_size=0.4)
+        # valid_x,test_x,valid_y,test_y = train_test_split(valid_test_x,valid_test_y,test_size=0.5)
+        #
+        # return train_x,valid_x,test_x,train_y,valid_y,test_y
+        return train_test_split(feature_data,label_data,test_size=0.4)
     else:
         return feature_data, label_data
 
@@ -419,12 +505,13 @@ def plot_confusion_matrix(confusion_mat):
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
     model_save = {}
-    test_classifiers_list = ['GBDT',
-                              'KNN',
-                             'LR',
-                             'RF',
-                             'DT'
-                             'XGB']
+    test_classifiers_list = [ 'RF']
+                            #  'GBDT',
+                            #    'KNN',
+                            # #  'LR',
+                            #,
+                            #   'DT']
+                             # 'XGB']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -447,6 +534,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
             print('reading training and testing data...')
 
             train_x, test_x, train_y, test_y = get_data(group,split=True)
+            print(test_y.value_counts())
             # train_x, test_x, train_y, test_y = read_data(data_file,split=True)
 
             for classifier in test_classifiers_list:
@@ -456,10 +544,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 print('training took %fs!' % (time.time() - start_time))
 
                 predict = model.predict(test_x)
-                print(predict)
+                print((predict.sum())/len(predict))
                 # predict_proba = model.predict(test_x)
-                # if(classifier == 'SVM'):
-                #     test_x = MinMaxScaler().fit_transform(test_x)
                 # predict_proba = model.predict_proba(test_x)[:,1]
                 if model_save_file != None:
                     model_save[classifier] = model
@@ -475,16 +561,11 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 # predict_proba[predict_proba < 0.5] = 0
                 # predict_proba = predict_proba.astype(np.int64)
                 #print(predict_proba)
- #多分类混淆矩阵
-                # confusion_mat = confusion_matrix(test_y,predict)
-                # print(confusion_mat)
-                # confusion_mat[1,1] = 0
-                # plot_confusion_matrix(confusion_mat)
-                # print(classification_report(test_y,predict))
-
 
 #评价指标
 #000000
+
+                print(len([v1 for (v1,v2) in zip(test_y,predict) if v1 != v2]))
 
                 precision = metrics.precision_score(test_y, predict)
                 recall = metrics.recall_score(test_y, predict)
@@ -502,30 +583,6 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 # precision_list.append(precision)
                 # recall_list.append(recall)
                 result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
-
-
-                #多分类评价指标
-
-#0000000
-
-                # precision = metrics.precision_score(test_y, predict, average="micro")
-                # recall = metrics.recall_score(test_y, predict, average="micro")
-                # fbetascore = fbeta_score(test_y, predict, 0.5, average="micro")
-                # print(
-                #     'precision: %.6f%%, recall: %.6f%%, f0.5score: %.6f%%' % (100 * precision, 100 * recall, 100 * fbetascore))
-                # print('model score: %.6f' % (model.score(test_x, test_y)))
-                # accuracy = metrics.accuracy_score(test_y, predict)
-                # print('accuracy: %.6f%%' % (100 * accuracy))
-
-                # print('predict proba 1 = {0}%'.format(100*(predict[predict == 1].sum() / predict.size)))
-                # print('test 1 = {0}%'.format(100 * (test_y[test_y == 1].sum() / test_y.size)))
-
-
-                # np.savetxt(predict_proba_file,predict_proba)
-
-
-
-    #
 
             if model_save_file != None:
                 pickle.dump(model_save, open(model_save_file, 'wb'))
