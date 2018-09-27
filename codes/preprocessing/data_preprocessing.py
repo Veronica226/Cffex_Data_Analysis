@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 import string
-
 import pandas as pd
 import numpy as np
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta, time
 import os, sys, json, csv, re, gc
 
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
@@ -358,6 +357,15 @@ def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgro
     print(merged_df)
     merged_df.to_csv(merged_alertgroup_file,sep=',',index=False)
 
+def calculate_delta_time(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
+    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
+    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
+    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
+    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
+    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
+    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
 
 
 

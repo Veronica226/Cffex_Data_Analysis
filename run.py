@@ -80,7 +80,8 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,new_merged_file,new_merged_alertgroup_file)
+        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,new_merged_file,new_merged_alertgroup_file)
+        data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
 
 
 #调用特征提取的函数
@@ -104,6 +105,8 @@ def call_feature_extraction_func(flag=False):
         disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
 
+        if not os.path.exists(cluster_data_dir):
+            os.makedirs(cluster_data_dir)
         cluster_history_data_file = os.path.join(cluster_data_dir, "cluster_history_data.csv")
         alarm_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
         cluster_series_data_file= os.path.join(cluster_data_dir, "cluster_series_data.csv")
@@ -130,7 +133,7 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.delete_feature(merged_final_file,no_disk_file)
 
         #生成聚类所用的特征历史数据
-        # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
+        feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
 
         # feature_extraction.generate_cluster_data(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
@@ -156,6 +159,8 @@ def call_predict_model_func(flag=False):
         level_multiclass_data_file = os.path.join(multiclass_data_dir, "level_multiclass_data.csv")
         merged_alertgroup_file = os.path.join(predict_data_dir, "merged_alertgroup_data.csv")
         result_file = os.path.join(predict_data_dir, "result_data.csv")
+        new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
+        new_result_file = os.path.join(new_predict_data_dir, "new_result_data.csv")
         # #包含若干分类器的预测模型
         # print('no cpu')
         # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
@@ -170,7 +175,7 @@ def call_predict_model_func(flag=False):
         # print('only mem')
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
 
-        predict_model.classifiers_for_prediction(merged_alertgroup_file, model_save_file, history_predict_proba_file,result_file)
+        predict_model.classifiers_for_prediction(new_merged_alertgroup_file, model_save_file, history_predict_proba_file,new_result_file)
 
 
 def call_level_division_func(flag=False):
@@ -202,9 +207,10 @@ def call_anomaly_detection_func(flag=False):
 
 if __name__ == '__main__':
     call_data_preprocessing_func()
-    call_feature_extraction_func(flag=True)
+    call_feature_extraction_func()
+    print('最大最小时间差、平均值、alarm_count')
+    call_predict_model_func(flag=True)
 
-    call_predict_model_func()
     call_anomaly_detection_func()
     call_level_division_func()
 
