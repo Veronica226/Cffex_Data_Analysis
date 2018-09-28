@@ -1,10 +1,10 @@
 import time
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+# import xgboost as xgb
 import matplotlib.pyplot as plt
 import random
-import lightgbm as lgb
+# import lightgbm as lgb
 
 
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, fbeta_score,confusion_matrix,classification_report
@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler,MinMaxScaler
 from sklearn import tree
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV, ShuffleSplit
+from sklearn.model_selection import GridSearchCV, ShuffleSplit,RandomizedSearchCV
 from sklearn import svm,datasets,metrics
 from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
@@ -24,7 +24,7 @@ from settings import *
 from sklearn.model_selection import KFold
 import pickle
 import pandas as pd
-from xgboost import *
+# from xgboost import *
 
 ######################################################################################
 #Author: 王靖文
@@ -79,13 +79,22 @@ def random_forest_classifier(train_x, train_y):
     max_fs = 0
     best_model = None
     for train_index,test_index in kf.split(arr_x):
-        model = RandomForestClassifier(n_estimators=8, n_jobs=-1) # max_depth > 10
+        param_dist = {
+            'n_estimators': range(80, 200, 4),
+            'max_depth': range(2, 15, 1),
+            'min_samples_leaf':range(10,101,10)
+        }
+        model = RandomizedSearchCV(RandomForestClassifier,param_dist,cv=3,scoring = 'neg_log_los',n_iter = 300,n_jobs = -1)
+        # model = RandomForestClassifier(n_estimators=8,max_depth=13, n_jobs=-1) # max_depth > 10
         # model = RandomForestClassifier(oob_score=True, random_state=10)
         train_x = arr_x[train_index]
         train_y = arr_y[train_index]
         test_x = arr_x[test_index]
         test_y = arr_y[test_index]
         model.fit(train_x, train_y)
+        print(model.best_score_)
+        print(model.best_estimator_)
+        print(model.best_params_)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y,predict)
         fbetascore = fbeta_score(test_y, predict, 0.5)
@@ -93,7 +102,13 @@ def random_forest_classifier(train_x, train_y):
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
+
+
     return best_model
+
+
+
+
 
     # alert_estimator_dict = {'Biz':100,'Mon':190,'Ora':150,'Trd:120}
     # depth_dict = {'Biz':19,'Mon':19,'Ora':17,'Trd':17}
@@ -136,7 +151,6 @@ def random_forest_classifier(train_x, train_y):
 
 # Decision Tree Classifier
 def decision_tree_classifier(train_x, train_y):
-
     arr_x = train_x.values
     arr_y = train_y.values
     kf = KFold(n_splits=3)
@@ -207,23 +221,23 @@ def gradient_boosting_classifier(train_x, train_y):
             best_model = model
     return best_model
 
-def xgboost_classifier(train_x,train_y):
-    dtrain = xgb.Dmatrix(train_x,train_y)
-    params = {'booster': 'gbtree',
-              'objective': 'binary:logistic',
-              'eval_metric': 'auc',
-              'max_depth': 4,
-              'lambda': 10,
-              'subsample': 0.75,
-              'colsample_bytree': 0.75,
-              'min_child_weight': 2,
-              'eta': 0.025,
-              'seed': 0,
-              'nthread': 8,
-              'silent': 1}
-    watchlist = [(dtrain, 'train')]
-    bst = xgb.train(params, dtrain, num_boost_round=100, evals=watchlist)
-    return bst
+# def xgboost_classifier(train_x,train_y):
+#     dtrain = xgb.Dmatrix(train_x,train_y)
+#     params = {'booster': 'gbtree',
+#               'objective': 'binary:logistic',
+#               'eval_metric': 'auc',
+#               'max_depth': 4,
+#               'lambda': 10,
+#               'subsample': 0.75,
+#               'colsample_bytree': 0.75,
+#               'min_child_weight': 2,
+#               'eta': 0.025,
+#               'seed': 0,
+#               'nthread': 8,
+#               'silent': 1}
+#     watchlist = [(dtrain, 'train')]
+#     bst = xgb.train(params, dtrain, num_boost_round=100, evals=watchlist)
+#     return bst
 
 # def lightgbm_classifier(train_x,train_y):
 #     lgb_train = lgb.Dataset(train_x,train_y,free_raw_data=False)
@@ -519,8 +533,8 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                    'DT': decision_tree_classifier,
                    'SVM': svm_classifier,
                    'SVMCV': svm_cross_validation,
-                   'GBDT': gradient_boosting_classifier,
-                   'XGB':xgboost_classifier
+                   'GBDT': gradient_boosting_classifier
+                   # 'XGB':xgboost_classifier
                    }
 
     result_list = []
