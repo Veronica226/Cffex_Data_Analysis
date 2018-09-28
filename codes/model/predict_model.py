@@ -79,7 +79,7 @@ def random_forest_classifier(train_x, train_y):
     max_fs = 0
     best_model = None
     for train_index,test_index in kf.split(arr_x):
-        model = RandomForestClassifier(n_estimators=8,max_depth=13, n_jobs=-1) # max_depth > 10
+        model = RandomForestClassifier(n_estimators=8, n_jobs=-1) # max_depth > 10
         # model = RandomForestClassifier(oob_score=True, random_state=10)
         train_x = arr_x[train_index]
         train_y = arr_y[train_index]
