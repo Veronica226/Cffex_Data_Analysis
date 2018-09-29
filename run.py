@@ -81,7 +81,9 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
         # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,new_merged_file,new_merged_alertgroup_file)
-        data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
+        # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
+        data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
+
 
 
 #调用特征提取的函数
@@ -206,10 +208,10 @@ def call_anomaly_detection_func(flag=False):
         return
 
 if __name__ == '__main__':
-    call_data_preprocessing_func()
+    call_data_preprocessing_func(flag=True)
     call_feature_extraction_func()
     print('最大最小时间差、平均值、alarm_count')
-    call_predict_model_func(flag=True)
+    call_predict_model_func()
 
     call_anomaly_detection_func()
     call_level_division_func()

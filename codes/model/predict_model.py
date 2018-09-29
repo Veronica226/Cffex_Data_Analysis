@@ -72,6 +72,27 @@ def logistic_regression_classifier(train_x, train_y):
 
 # Random Forest Classifier
 def random_forest_classifier(train_x, train_y):
+    arr_x = train_x.values
+    arr_y = train_y.values
+    kf = KFold(n_splits=5)
+    max_acc = 0
+    max_fs = 0
+    best_model = None
+    for train_index, test_index in kf.split(arr_x):
+        model = RandomForestClassifier()
+        train_x = arr_x[train_index]
+        train_y = arr_y[train_index]
+        test_x = arr_x[test_index]
+        test_y = arr_y[test_index]
+        model.fit(train_x, train_y)
+        predict = model.predict(test_x)
+        acc = metrics.accuracy_score(test_y, predict)
+        fbetascore = fbeta_score(test_y, predict, 0.5)
+        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        if fbetascore > max_fs:
+            max_fs = fbetascore
+            best_model = model
+    return best_model
     # arr_x = train_x.values
     # arr_y = train_y.values
     # kf = KFold(n_splits = 5)
@@ -79,33 +100,33 @@ def random_forest_classifier(train_x, train_y):
     # max_fs = 0
     # best_model = None
     # for train_index,test_index in kf.split(arr_x):
-        param_dist = {
-            'n_estimators': range(80, 201, 20),
-            'max_depth': range(10, 15, 1),
-            'min_samples_leaf':range(10,101,10)
-        }
-        model = RandomizedSearchCV(RandomForestClassifier(),param_dist,cv=5,n_iter = 300,n_jobs = -1)
+    #     param_dist = {
+    #         'n_estimators': range(80, 201, 20),
+    #         'max_depth': range(10, 15, 1),
+    #         'min_samples_leaf':range(10,101,10)
+    #     }
+    #     model = RandomizedSearchCV(RandomForestClassifier(),param_dist,cv=5,n_iter = 300,n_jobs = -1)
         # model = RandomForestClassifier(n_estimators=8,max_depth=13, n_jobs=-1) # max_depth > 10
         # model = RandomForestClassifier(oob_score=True, random_state=10)
         # train_x = arr_x[train_index]
         # train_y = arr_y[train_index]
         # test_x = arr_x[test_index]
         # test_y = arr_y[test_index]
-        model.fit(train_x, train_y)
-        print(model.best_score_)
-        print(model.best_estimator_)
-        print(model.best_params_)
-        # predict = model.predict(test_x)
-        # acc = metrics.accuracy_score(test_y,predict)
-        # fbetascore = fbeta_score(test_y, predict, 0.5)
-        # print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
-        # if fbetascore > max_fs:
-        #     max_fs = fbetascore
-        #     best_model = model
-
-
-        return model.best_estimator_
-
+        # model.fit(train_x, train_y)
+        # print(model.best_score_)
+        # print(model.best_estimator_)
+        # print(model.best_params_)
+        # # predict = model.predict(test_x)
+        # # acc = metrics.accuracy_score(test_y,predict)
+        # # fbetascore = fbeta_score(test_y, predict, 0.5)
+        # # print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        # # if fbetascore > max_fs:
+        # #     max_fs = fbetascore
+        # #     best_model = model
+        #
+        #
+        # return model.best_estimator_
+        #
 
 
 
@@ -335,9 +356,10 @@ def get_data(data_df,split):
                 'mem_max_2',
                  # 'mem_mint_2',
                 'mem_min_2',
-                # 'alarm_count',
+                'alarm_count',
                 'event',
-                'cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2']
+                # 'cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2'
+                'cpu_amm','mem_amm','cpu_amm_1','mem_amm_1','cpu_amm_2','mem_amm_2']
     # col_list = ['cpu_max', 'cpu_min',
     #             # 'boot_max', 'boot_min', 'home_max', 'home_min',
     #             # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
@@ -355,6 +377,8 @@ def get_data(data_df,split):
     #                 'mem_max_2', 'mem_min_2',
     #                  'event']
     data = data_df[col_list]
+    data.replace(-np.inf, np.nan)
+    data.fillna(0)
     data = data.convert_objects(convert_numeric=True)
     # print(data)
     feature_data = data.drop('event', axis=1)
@@ -541,7 +565,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
     # ignored_list = []
     all_data =  pd.read_csv(data_file, sep=',', dtype=str)
     for alertgroup,group in all_data.groupby('alertgroup'):
-        if alertgroup != 'Net' and alertgroup!='Biz' :
+        if alertgroup != 'Net':
         # if alertgroup == 'Ora' :
             print(alertgroup)
             print(group['event'].value_counts())

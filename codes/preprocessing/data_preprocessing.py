@@ -370,9 +370,17 @@ def calculate_delta_time(merged_alertgroup_file):
 
 def calculate_avg_and_alarmcount(merged_alertgroup_file):
     data = pd.read_csv(merged_alertgroup_file,sep=',',dtype=str)
-    for group in data.groupby('hostname'):
-        alarmcount_list = group['alarm_count'].values.tolist()
-        group['alarm_count'] = group['alarm_count'].map(lambda x:sum(alarmcount_list))
+    print(data)
+    for hostname,group in data.groupby('hostname'):
+        alarmcount_list = group['alarm_count'].map(float).values
+        print(sum(alarmcount_list))
+        # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
+        index_list = data[data.hostname == hostname].index.tolist()
+        print(index_list)
+        data.ix[index_list,'alarm_count'] =data.ix[index_list,'alarm_count'].apply(lambda x:sum(alarmcount_list))
+        print(data[data['hostname']==hostname]['alarm_count'])
+
+
 
     data['cpu_amm'] = (data['cpu_avg'].map(float)/((data['cpu_max'].map(float)-data['cpu_min'].map(float))/2)).map(str)
     data['mem_amm'] = (data['mem_avg'].map(float)/((data['mem_max'].map(float)-data['mem_min'].map(float))/2)).map(str)
@@ -380,6 +388,10 @@ def calculate_avg_and_alarmcount(merged_alertgroup_file):
     data['mem_amm_1'] = (data['mem_avg_1'].map(float)/((data['mem_max_1'].map(float)-data['mem_min_1'].map(float))/2)).map(str)
     data['cpu_amm_2'] = (data['cpu_avg_2'].map(float)/((data['cpu_max_2'].map(float)-data['cpu_min_2'].map(float))/2)).map(str)
     data['mem_amm_2'] = (data['mem_avg_2'].map(float)/((data['mem_max_2'].map(float)-data['mem_min_2'].map(float))/2)).map(str)
+    print(data)
+    print(data['alarm_count'])
+    data.replace(np.inf, np.nan)
+    data.fillna(0)
     data.to_csv(merged_alertgroup_file,sep=',',index=False)
 
 
