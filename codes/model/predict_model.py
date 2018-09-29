@@ -72,39 +72,39 @@ def logistic_regression_classifier(train_x, train_y):
 
 # Random Forest Classifier
 def random_forest_classifier(train_x, train_y):
-    arr_x = train_x.values
-    arr_y = train_y.values
-    kf = KFold(n_splits = 5)
-    max_acc=0
-    max_fs = 0
-    best_model = None
-    for train_index,test_index in kf.split(arr_x):
+    # arr_x = train_x.values
+    # arr_y = train_y.values
+    # kf = KFold(n_splits = 5)
+    # max_acc=0
+    # max_fs = 0
+    # best_model = None
+    # for train_index,test_index in kf.split(arr_x):
         param_dist = {
-            'n_estimators': range(80, 200, 4),
-            'max_depth': range(2, 15, 1),
+            'n_estimators': range(80, 201, 20),
+            'max_depth': range(10, 15, 1),
             'min_samples_leaf':range(10,101,10)
         }
-        model = RandomizedSearchCV(RandomForestClassifier,param_dist,cv=3,scoring = 'neg_log_los',n_iter = 300,n_jobs = -1)
+        model = RandomizedSearchCV(RandomForestClassifier(),param_dist,cv=5,n_iter = 300,n_jobs = -1)
         # model = RandomForestClassifier(n_estimators=8,max_depth=13, n_jobs=-1) # max_depth > 10
         # model = RandomForestClassifier(oob_score=True, random_state=10)
-        train_x = arr_x[train_index]
-        train_y = arr_y[train_index]
-        test_x = arr_x[test_index]
-        test_y = arr_y[test_index]
+        # train_x = arr_x[train_index]
+        # train_y = arr_y[train_index]
+        # test_x = arr_x[test_index]
+        # test_y = arr_y[test_index]
         model.fit(train_x, train_y)
         print(model.best_score_)
         print(model.best_estimator_)
         print(model.best_params_)
-        predict = model.predict(test_x)
-        acc = metrics.accuracy_score(test_y,predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
-        if fbetascore > max_fs:
-            max_fs = fbetascore
-            best_model = model
+        # predict = model.predict(test_x)
+        # acc = metrics.accuracy_score(test_y,predict)
+        # fbetascore = fbeta_score(test_y, predict, 0.5)
+        # print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        # if fbetascore > max_fs:
+        #     max_fs = fbetascore
+        #     best_model = model
 
 
-    return best_model
+        return model.best_estimator_
 
 
 
@@ -541,7 +541,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
     # ignored_list = []
     all_data =  pd.read_csv(data_file, sep=',', dtype=str)
     for alertgroup,group in all_data.groupby('alertgroup'):
-        if alertgroup != 'Net' :
+        if alertgroup != 'Net' and alertgroup!='Biz' :
         # if alertgroup == 'Ora' :
             print(alertgroup)
             print(group['event'].value_counts())
