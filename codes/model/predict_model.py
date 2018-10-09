@@ -357,9 +357,9 @@ def get_data(data_df,split):
                  # 'mem_mint_2',
                 'mem_min_2',
                 'alarm_count',
-                'event',
+                'event']
                 # 'cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2'
-                'cpu_amm','mem_amm','cpu_amm_1','mem_amm_1','cpu_amm_2','mem_amm_2']
+                # 'cpu_amm','mem_amm','cpu_amm_1','mem_amm_1','cpu_amm_2','mem_amm_2']
     # col_list = ['cpu_max', 'cpu_min',
     #             # 'boot_max', 'boot_min', 'home_max', 'home_min',
     #             # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
@@ -377,8 +377,8 @@ def get_data(data_df,split):
     #                 'mem_max_2', 'mem_min_2',
     #                  'event']
     data = data_df[col_list]
-    data.replace(-np.inf, np.nan)
-    data.fillna(0)
+    # data.replace(-np.inf, np.nan)
+    # data.fillna(0)
     data = data.convert_objects(convert_numeric=True)
     # print(data)
     feature_data = data.drop('event', axis=1)

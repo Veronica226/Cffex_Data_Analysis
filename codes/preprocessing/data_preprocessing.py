@@ -346,7 +346,7 @@ def find_close_alarm(time_list,time):
     return  flag
 
 #查看主机对应的业务类别，即alertgroup
-def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgroup_file):
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file):
     data = pd.read_csv(merged_data_file, sep=',', dtype=str)
     df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
     df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
@@ -355,7 +355,7 @@ def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgro
     merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
                          right_index=False)
     print(merged_df)
-    merged_df.to_csv(merged_alertgroup_file,sep=',',index=False)
+    merged_df.to_csv(merged_data_file,sep=',',index=False)
 
 def calculate_delta_time(merged_alertgroup_file):
     data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
@@ -393,6 +393,11 @@ def calculate_avg_and_alarmcount(merged_alertgroup_file):
     data.replace(np.inf, np.nan)
     data.fillna(0)
     data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+def fix_inf(new_merged_alertgroup_file):
+    data = pd.read_csv(new_merged_alertgroup_file,sep=',',dtype=str)
+    data[data==np.inf] = 0
+    print(data)
 
 
 

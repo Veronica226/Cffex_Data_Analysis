@@ -5,7 +5,7 @@ import pandas as pd
 from codes.preprocessing import data_preprocessing
 from codes.feature_engineering import feature_extraction
 from codes.model import predict_model, anomaly_detection
-from codes.clustering import level_division
+from codes.clustering import level_division,correlation_analysis
 from settings import *
 import os
 
@@ -43,6 +43,7 @@ def call_data_preprocessing_func(flag=False):
         new_alarm_out_file = os.path.join(new_predict_data_dir, "new_alarm_data.csv")
         new_merged_file = os.path.join(new_predict_data_dir, "new_merged_data.csv")
         new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
+        correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
 
         # #处理原始告警数据
         # data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
@@ -80,9 +81,10 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,new_merged_file,new_merged_alertgroup_file)
+        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,correlation_data_file)
         # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
-        data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
+        # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
+        # data_preprocessing.fix_inf(new_merged_alertgroup_file)
 
 
 
@@ -129,13 +131,13 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.generate_history_feature(new_plot_data_dir,new_history_data_file)
 
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
-        feature_extraction.generate_data_matrix_and_vector(new_history_data_file,new_alarm_file,new_merged_file)
+        # feature_extraction.generate_data_matrix_and_vector(new_history_data_file,new_alarm_file,new_merged_file)
 
         #保留部分特征
-        # feature_extraction.delete_feature(merged_final_file,no_disk_file)
+        feature_extraction.delete_feature(merged_final_file,no_disk_file)
 
         #生成聚类所用的特征历史数据
-        feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
+        # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
 
         # feature_extraction.generate_cluster_data(history_data_file,multicalss_alarm_out_file,multiclass_data_file)
 
@@ -188,11 +190,21 @@ def call_level_division_func(flag=False):
         correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
         alarm_content_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-content.csv')
         correlation_pair_file = os.path.join(multiclass_data_dir, "correlation_pair.csv")
+        new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
 
         # level_division.hierarchical_clusterting()
         # level_division.get_cluster_data(cluster_series_data_file)
-        level_division.hierarchical_clusterting(cluster_series_data_file,5)
-        # level_division.get_correlation_by_hostname(correlation_data_file,hist_plot_dir,alarm_content_file,correlation_pair_file)
+        # level_division.hierarchical_clusterting(cluster_series_data_file,5)
+        level_division.get_correlation_by_hostname(correlation_data_file,hist_plot_dir,alarm_content_file,multiclass_data_dir)
+
+#
+# def call_correlation_analysis(flag=False):
+#     correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
+#     alarm_content_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-content.csv')
+#     level_division.get_correlation_by_hostname(correlation_data_file, hist_plot_dir, alarm_content_file,multiclass_data_dir)
+#     correlation_analysis.cor_analysis(alarm_content_list)
+
+
 
 
 
@@ -208,11 +220,11 @@ def call_anomaly_detection_func(flag=False):
         return
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
+    call_data_preprocessing_func()
     call_feature_extraction_func()
     print('最大最小时间差、平均值、alarm_count')
     call_predict_model_func()
 
     call_anomaly_detection_func()
-    call_level_division_func()
+    call_level_division_func(flag=True)
 
