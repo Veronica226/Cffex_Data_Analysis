@@ -156,6 +156,7 @@ def PCA(data):
 ###########################################################################
 #correlation analysis
 
+#生成每个主机的关联告警相关性直方图
 def generate_hist_plot(cor_list,hostname,hist_plot_dir):
     if not os.path.exists(hist_plot_dir):
         os.makedirs(hist_plot_dir)
@@ -177,43 +178,67 @@ def get_correlation_by_hostname(merged_data_file,hist_plot_dir,alarm_content_fil
         if alertgroup != 'Net':
             print(alertgroup)
             correlation_dict = {}
-            all_alarm_content_list = []
+            all_alarm_content_list = []    #存储每个主机的告警list
             for hostname,df in all_df.groupby('hostname'):
                 # print(hostname)
                 cor_list = []
-                alarm_content_list = []
-                len = df.shape[0]
-                for i in range(0,len):
-                    row = df.iloc[i]
-                    # print(row.values.tolist()[2:-1])
-                    if(row['content']!='0'):
-                        content_id_1 = int(row['content'])
-                        alarm_content_list.append(content_id_1)
-                        event_1 = int(row['event'])
-                        list_1 = row.values.tolist()[2:-2]
-                        kpi_list_1 = [float(i) for i in list_1]
-                        # print(kpi_list_1)
-                        if(i+1< len):
-                            row_next = df.iloc[i+1,:]
-                            if(row_next['content']!='0'):
-                                content_id_2 = int(row_next['content'])
-                                event_2 = int(row_next['event'])
-                                # print('Yes')
-                                if correlation_dict.get((content_id_1,event_1,content_id_2,event_2)) == None:
-                                    correlation_dict[(content_id_1,event_1,content_id_2,event_2)] = 1
-                                else:
-                                    correlation_dict[(content_id_1,event_1,content_id_2,event_2)] += 1
-                                list_2 = row_next.values.tolist()[2:-2]
-                                kpi_list_2 = [float(i) for i in list_2]
-                                cor = Pearson(kpi_list_1,kpi_list_2)
-                                cor_list.append(cor)
+                len_df = df.shape[0]
+                # 每个主机内的所有告警作为dataset的一项
+                # for i in range(0,len_df):
+                #     row = df.iloc[i]
+                #     # print(row.values.tolist()[2:-1])
+                #     if(row['content']!='0'):
+                #         content_id_1 = int(row['content'])
+                #         alarm_content_list.append(content_id_1)
+                #         event_1 = int(row['event'])
+                #         list_1 = row.values.tolist()[2:-2]
+                #         kpi_list_1 = [float(i) for i in list_1]
+                #         # print(kpi_list_1)
+                #         if(i+1< len):
+                #             row_next = df.iloc[i+1,:]
+                #             if(row_next['content']!='0'):
+                #                 content_id_2 = int(row_next['content'])
+                #                 event_2 = int(row_next['event'])
+                #                 # print('Yes')
+                #                 if correlation_dict.get((content_id_1,event_1,content_id_2,event_2)) == None:
+                #                     correlation_dict[(content_id_1,event_1,content_id_2,event_2)] = 1
+                #                 else:
+                #                     correlation_dict[(content_id_1,event_1,content_id_2,event_2)] += 1
+                #                 list_2 = row_next.values.tolist()[2:-2]
+                #                 kpi_list_2 = [float(i) for i in list_2]
+                #                 cor = Pearson(kpi_list_1,kpi_list_2)
+                #                 cor_list.append(cor)
+                # 对每个主机的告警划分时间段，使每一项告警list内前后两个告警的时间间隔在1小时
 
-                all_alarm_content_list.append(alarm_content_list)
+                alarm_contents= df['content'].values.tolist()
+                alarm_content = [float(i) for i in alarm_contents]
+                i=0
+                while(i < len_df-1):
+                    k=1
+                    if alarm_content[i]!=0:
+                        sub_alarm_content_list = []
+                        sub_alarm_content_list.append(alarm_content[i])
+                        while(i+k < len_df - 1 and alarm_content[i+k]!=0):
+                            sub_alarm_content_list.append(alarm_content[i+k])
+                            # j+=1
+                            k+=1
+                        if len(sub_alarm_content_list) > 1:
+                            all_alarm_content_list.append(sub_alarm_content_list)
+                        # print(sub_alarm_content_list)
+                    i+=k
+
+            print(all_alarm_content_list)
+            cor_analysis_1(all_alarm_content_list)
+
+                # all_alarm_content_list.append(alarm_content_list)
                 # if(cor_list != []):
                 #     print(cor_list)
                 #     generate_hist_plot(cor_list,hostname,hist_plot_dir)
-            print(all_alarm_content_list)
-            cor_analysis_2(all_alarm_content_list)
+
+
+
+            # print(all_alarm_content_list)
+            # or_analysis_2(all_alarm_content_list)c
 
 
 
@@ -223,6 +248,7 @@ def get_correlation_by_hostname(merged_data_file,hist_plot_dir,alarm_content_fil
         # new_content_pair_file = os.path.join(multiclass_data_dir,alertgroup + '_correlation_pair.csv')
         # df.to_csv(new_content_pair_file,sep=',',encoding='gb2312')
 
+#导出关联告警的pair
 def generate_content_event_pair(correlation_dict,alarm_content_file):
     df_content = pd.read_csv(alarm_content_file, sep=',', encoding = "gb2312")
     content_dict = dict(zip(df_content['id'], df_content['alarm_content']))
@@ -266,6 +292,8 @@ def generate_content_event_pair(correlation_dict,alarm_content_file):
 
 
 
+####################################################################
+#########################第一种
 
 def create_C1(data_set):
     """
@@ -407,8 +435,8 @@ def generate_big_rules(L, support_data, min_conf):
     return big_rule_list
 
 
-def cor_analysis(data_set):
-    L, support_data = generate_L(data_set, k=3, min_support=0.5)
+def cor_analysis_1(data_set):
+    L, support_data = generate_L(data_set, k=4, min_support=0.01)
     big_rules_list = generate_big_rules(L, support_data, min_conf=0.2)
     for Lk in L:
         if len(Lk) != 0:
@@ -476,7 +504,7 @@ def aprioriGen(Lk_1, k):
 
     return Ck
 
-def apriori(dataSet, minSupport = 0.5):
+def apriori(dataSet, minSupport):
     C1 = createC1(dataSet)
     L1, supportData = scanD(dataSet, C1, minSupport)
     L = [L1]
@@ -497,7 +525,7 @@ def apriori(dataSet, minSupport = 0.5):
 #L: 频繁项集列表
 #supportData: 包含频繁项集支持数据的字典
 #minConf 最小置信度
-def generateRules(L, supportData, minConf=0.2):
+def generateRules(L, supportData, minConf):
     #包含置信度的规则列表
     bigRuleList = []
     #从频繁二项集开始遍历
@@ -512,7 +540,7 @@ def generateRules(L, supportData, minConf=0.2):
 
 
 # 计算是否满足最小可信度
-def calcConf(freqSet, H, supportData, brl, minConf=0.2):
+def calcConf(freqSet, H, supportData, brl, minConf):
     prunedH = []
     #用每个conseq作为后件
     for conseq in H:
@@ -529,7 +557,7 @@ def calcConf(freqSet, H, supportData, brl, minConf=0.2):
 
 
 # 对规则进行评估
-def rulesFromConseq(freqSet, H, supportData, brl, minConf=0.2):
+def rulesFromConseq(freqSet, H, supportData, brl, minConf):
     m = len(H[0])
     if (len(freqSet) > (m + 1)):
         Hmp1 = aprioriGen(H, m + 1)
@@ -539,7 +567,7 @@ def rulesFromConseq(freqSet, H, supportData, brl, minConf=0.2):
             rulesFromConseq(freqSet, Hmp1, supportData, brl, minConf)
 
 def cor_analysis_2(dataset):
-    L, support_data = apriori(dataset, minSupport=0.5)
+    L, support_data = apriori(dataset, minSupport=0.01)
     for Lk in L:
         if len(Lk) != 0:
             print(Lk)
@@ -548,6 +576,7 @@ def cor_analysis_2(dataset):
             print("=" * 50)
             for freq_set in Lk:
                 print(freq_set, support_data[freq_set])
+    print('=====================bigrules======================')
 
     big_rules_list = generateRules(L, support_data, minConf=0.2)
     # print(big_rules_list)
