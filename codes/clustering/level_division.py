@@ -174,6 +174,8 @@ def generate_hist_plot(cor_list,hostname,hist_plot_dir):
 def get_correlation_by_hostname(merged_data_file,hist_plot_dir,alarm_content_file,multiclass_data_dir):
     col_list = ['hostname','archour','cpu_max', 'cpu_min', 'mem_max', 'mem_min','event','content','alertgroup']
     data = pd.read_csv(merged_data_file, sep=',',usecols=col_list, dtype=str)
+    df_content = pd.read_csv(alarm_content_file, sep=',', encoding="gb2312")
+    content_dict = dict(zip(df_content['id'], df_content['alarm_content']))
     for alertgroup,all_df in data.groupby('alertgroup'):
         if alertgroup != 'Net':
             print(alertgroup)
@@ -228,17 +230,12 @@ def get_correlation_by_hostname(merged_data_file,hist_plot_dir,alarm_content_fil
                     i+=k
 
             print(all_alarm_content_list)
-            cor_analysis_1(all_alarm_content_list)
+            cor_analysis_1(all_alarm_content_list,content_dict)
 
                 # all_alarm_content_list.append(alarm_content_list)
                 # if(cor_list != []):
                 #     print(cor_list)
                 #     generate_hist_plot(cor_list,hostname,hist_plot_dir)
-
-
-
-            # print(all_alarm_content_list)
-            # or_analysis_2(all_alarm_content_list)c
 
 
 
@@ -435,7 +432,7 @@ def generate_big_rules(L, support_data, min_conf):
     return big_rule_list
 
 
-def cor_analysis_1(data_set):
+def cor_analysis_1(data_set,content_dict):
     L, support_data = generate_L(data_set, k=4, min_support=0.01)
     big_rules_list = generate_big_rules(L, support_data, min_conf=0.2)
     for Lk in L:
@@ -450,6 +447,10 @@ def cor_analysis_1(data_set):
     print("Big Rules")
     for item in big_rules_list:
         print(item[0], "=>", item[1], "conf: ", item[2])
+        new_item_0 = [content_dict[i]for i in item[0]]
+        new_item_1 = [content_dict[j] for j in item[1]]
+        print(new_item_0, "=>", new_item_1, "conf: ", item[2])
+
 
 
 ###########################################################################
