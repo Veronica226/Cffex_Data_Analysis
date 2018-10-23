@@ -16,10 +16,14 @@ def generate_feature_by_hostname(origin_dir, out_file):
         host_name_file_dict[host_name].append(file_name)
     #这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
     host_name_list = host_name_file_dict.keys()
-    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
-                                    'boot_max', 'boot_min','home_max', 'home_min',
-                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                    'tmp_max', 'tmp_min','mem_max', 'mem_min'])
+    df_all = pd.DataFrame(columns=['hostname', 'archour',
+                                   'cpu_avg','cpu_maxt','cpu_max','cpu_mint', 'cpu_min',     #创建空dataframe 存放merge之后的数据
+                                   'boot_avg','boot_maxt','boot_max', 'boot_mint','boot_min',
+                                  'home_avg','home_maxt', 'home_max','home_mint', 'home_min',
+                                   'monitor_avg','monitor_maxt', 'monitor_max','monitor_mint', 'monitor_min',
+                                   'rt_avg','rt_maxt','rt_max','rt_mint', 'rt_min',
+                                   'tmp_avg','tmp_maxt', 'tmp_max', 'tmp_mint','tmp_min',
+                                    'mem_avg','mem_maxt', 'mem_max','mem_mint', 'mem_min'])
     print('host number = ', len(host_name_list))
     for h_name in host_name_list:            #遍历每个主机对应的文件list
         file_list = host_name_file_dict[h_name]
@@ -31,7 +35,7 @@ def generate_feature_by_hostname(origin_dir, out_file):
             prefix = str(get_prefix(f_name))    #获取对应的部件作为前缀
             file_path = os.path.join(origin_dir, f_name)
             data = pd.read_csv(file_path, sep=',', dtype=str, header=None,index_col=None)  #header=None设置列名为空，自动用0开头的数字替代
-            data.columns = ['archour',prefix+ '_max', prefix+'_min']  #列名
+            data.columns = ['archour',prefix+'_avg',prefix+ '_maxt',prefix+ '_max', prefix+'_mint', prefix+'_min' ]  #列名
             if(idx == 0):
                 df = pd.merge(df, data, how='outer', on=['archour'])
                 idx = 1
@@ -80,6 +84,24 @@ def file_filter(f_list):
 
 def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
+    # feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
+    # loop = True
+    # chunkSize = 1000
+    # chunks = []
+    # index = 0
+    # while loop:
+    #     try:
+    #         print(index)
+    #         chunk = feature_data_df.get_chunk(chunkSize)
+    #         chunks.append(chunk)
+    #         index += 1
+    #
+    #     except StopIteration:
+    #         loop = False
+    #         print("Iteration is stopped.")
+    # print('开始合并')
+    # feature_data_df = pd.concat(chunks, ignore_index=True)
+
     print(feature_data_df.shape)
     alarm_data_df = pd.read_csv(alarm_file, sep=',', dtype=str)  #13614*3
     print(alarm_data_df.shape)
@@ -88,7 +110,7 @@ def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
     #merge之后，有7997条告警数据，639199条非告警数据
     merged_df.to_csv(merged_data_file, sep=',', index=False)
     print(merged_df[merged_df['event']==0].shape)
-    # print(merged_df[merged_df['event'] == '1'].shape)
+    print(merged_df[merged_df['event'] == '1'].shape)
 
 def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
@@ -100,16 +122,39 @@ def generate_history_feature(origin_dir, history_data_file):
         host_name_file_dict[host_name].append(file_name)
     # 这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
     host_name_list = host_name_file_dict.keys()
-    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
-                                   'boot_max', 'boot_min', 'home_max', 'home_min',
-                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
-                                   'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
-                                   'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
-                                   'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
-                                   'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
-                                   'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
-                                   'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2'])
+    df_all = pd.DataFrame(columns=['hostname', 'archour',
+                                   'cpu_avg', 'cpu_maxt', 'cpu_max', 'cpu_mint', 'cpu_min',  #创建空dataframe 存放merge之后的数据
+                                   'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
+                                   'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
+                                   'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
+                                   'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
+                                   'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
+                                   'mem_avg', 'mem_maxt', 'mem_max', 'mem_mint', 'mem_min',
+                                   'cpu_avg_1', 'cpu_maxt_1', 'cpu_max_1', 'cpu_mint_1', 'cpu_min_1',
+                                   'boot_avg_1', 'boot_maxt_1', 'boot_max_1', 'boot_mint_1', 'boot_min_1',
+                                   'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
+                                   'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
+                                   'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
+                                   'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
+                                   'mem_avg_1', 'mem_maxt_1', 'mem_max_1', 'mem_mint_1', 'mem_min_1',
+                                   'cpu_avg_2', 'cpu_maxt_2', 'cpu_max_2', 'cpu_mint_2', 'cpu_min_2',  # 创建空dataframe 存放merge之后的数据
+                                   'boot_avg_2', 'boot_maxt_2', 'boot_max_2', 'boot_mint_2', 'boot_min_2',
+                                   'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
+                                   'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
+                                   'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
+                                   'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
+                                   'mem_avg_2', 'mem_maxt_2', 'mem_max_2', 'mem_mint_2', 'mem_min_2'
+                                   ])
+    # columns=['hostname', 'archour', 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+    #                                'boot_max', 'boot_min', 'home_max', 'home_min',
+    #                                'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
+    #                                'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
+    #                                'cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
+    #                                'home_max_1', 'home_min_1', 'monitor_max_1', 'monitor_min_1',
+    #                                'rt_max_1', 'rt_min_1', 'tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1',
+    #                                'cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
+    #                                'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
+    #                                'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2'])
     print('host number = ', len(host_name_list))
     print(host_name_list)
     for h_name in host_name_list:            #遍历每个主机对应的文件list
@@ -122,7 +167,7 @@ def generate_history_feature(origin_dir, history_data_file):
             prefix = str(get_prefix(f_name))    #获取对应的部件作为前缀
             file_path = os.path.join(origin_dir, f_name)
             data = pd.read_csv(file_path, sep=',', dtype=str, header=None,index_col=None)  #header=None设置列名为空，自动用0开头的数字替代
-            data.columns = ['archour',prefix+ '_max', prefix+'_min']  #列名
+            data.columns = ['archour',prefix+'_avg',prefix+ '_maxt',prefix+ '_max', prefix+'_mint', prefix+'_min' ] #列名
             if(idx == 0):
                 df = pd.merge(df, data, how='outer', on=['archour'])
                 idx = 1
@@ -131,21 +176,36 @@ def generate_history_feature(origin_dir, history_data_file):
             # print (df)
         df['hostname'] = h_name
         #单个主机的特征矩阵，还未连接到df_all中
-        df_1hour_before = df[[ 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
-                                   'boot_max', 'boot_min', 'home_max', 'home_min',
-                                   'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                                   'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][1:-1]     #前一个小时的特征
-        df_2hour_before = df[['cpu_max', 'cpu_min',
-                              'boot_max', 'boot_min', 'home_max', 'home_min',
-                              'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                              'tmp_max', 'tmp_min', 'mem_max', 'mem_min']][0:-2]  # 前一个小时的特征
+        df_1hour_before = df[[ 'cpu_avg', 'cpu_maxt', 'cpu_max', 'cpu_mint', 'cpu_min',  #创建空dataframe 存放merge之后的数据
+                                   'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
+                                   'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
+                                   'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
+                                   'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
+                                   'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
+                                   'mem_avg', 'mem_maxt', 'mem_max', 'mem_mint', 'mem_min']][1:-1]     #前一个小时的特征
 
-        df_1hour_before.columns = ['cpu_max_1', 'cpu_min_1', 'boot_max_1', 'boot_min_1',
-                                   'home_max_1', 'home_min_1','monitor_max_1', 'monitor_min_1',
-                                   'rt_max_1', 'rt_min_1','tmp_max_1', 'tmp_min_1', 'mem_max_1', 'mem_min_1']
-        df_2hour_before.columns = ['cpu_max_2', 'cpu_min_2', 'boot_max_2', 'boot_min_2',
-                                   'home_max_2', 'home_min_2', 'monitor_max_2', 'monitor_min_2',
-                                   'rt_max_2', 'rt_min_2', 'tmp_max_2', 'tmp_min_2', 'mem_max_2', 'mem_min_2']
+        df_2hour_before = df[['cpu_avg', 'cpu_maxt', 'cpu_max', 'cpu_mint', 'cpu_min',  #创建空dataframe 存放merge之后的数据
+                                   'boot_avg', 'boot_maxt', 'boot_max', 'boot_mint', 'boot_min',
+                                   'home_avg', 'home_maxt', 'home_max', 'home_mint', 'home_min',
+                                   'monitor_avg', 'monitor_maxt', 'monitor_max', 'monitor_mint', 'monitor_min',
+                                   'rt_avg', 'rt_maxt', 'rt_max', 'rt_mint', 'rt_min',
+                                   'tmp_avg', 'tmp_maxt', 'tmp_max', 'tmp_mint', 'tmp_min',
+                                   'mem_avg', 'mem_maxt', 'mem_max', 'mem_mint', 'mem_min']][0:-2]  # 前2个小时的特征
+
+        df_1hour_before.columns = ['cpu_avg_1', 'cpu_maxt_1', 'cpu_max_1', 'cpu_mint_1', 'cpu_min_1',
+                                   'boot_avg_1', 'boot_maxt_1', 'boot_max_1', 'boot_mint_1', 'boot_min_1',
+                                   'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
+                                   'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
+                                   'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
+                                   'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
+                                   'mem_avg_1', 'mem_maxt_1', 'mem_max_1', 'mem_mint_1', 'mem_min_1']
+        df_2hour_before.columns = ['cpu_avg_2', 'cpu_maxt_2', 'cpu_max_2', 'cpu_mint_2', 'cpu_min_2',  # 创建空dataframe 存放merge之后的数据
+                                   'boot_avg_2', 'boot_maxt_2', 'boot_max_2', 'boot_mint_2', 'boot_min_2',
+                                   'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
+                                   'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
+                                   'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
+                                   'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
+                                   'mem_avg_2', 'mem_maxt_2', 'mem_max_2', 'mem_mint_2', 'mem_min_2']
 
 
         df_1hour_before = df_1hour_before.reset_index(drop=True)    #重置索引列
@@ -200,8 +260,8 @@ def generate_cluster_history_data(origin_dir, cluster_history_data_file):
         host_name_file_dict[host_name].append(file_name)
     # 这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
     host_name_list = host_name_file_dict.keys()
-
-    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',  # 创建空dataframe 存放merge之后的数据
+    # 创建空dataframe 存放merge之后的数据
+    df_all = pd.DataFrame(columns=['hostname', 'archour', 'cpu_max', 'cpu_min',
                                    'boot_max', 'boot_min', 'home_max', 'home_min',
                                    'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
                                    'tmp_max', 'tmp_min', 'mem_max', 'mem_min',
