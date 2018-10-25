@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 import string
-
 import pandas as pd
 import numpy as np
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta, time
 import os, sys, json, csv, re, gc
 
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
@@ -347,7 +346,7 @@ def find_close_alarm(time_list,time):
     return  flag
 
 #查看主机对应的业务类别，即alertgroup
-def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgroup_file):
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file):
     data = pd.read_csv(merged_data_file, sep=',', dtype=str)
     df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
     df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
@@ -356,8 +355,49 @@ def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgro
     merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
                          right_index=False)
     print(merged_df)
-    merged_df.to_csv(merged_alertgroup_file,sep=',',index=False)
+    merged_df.to_csv(merged_data_file,sep=',',index=False)
 
+def calculate_delta_time(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
+    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
+    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
+    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
+    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
+    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
+    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+
+def calculate_avg_and_alarmcount(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file,sep=',',dtype=str)
+    print(data)
+    for hostname,group in data.groupby('hostname'):
+        alarmcount_list = group['alarm_count'].map(float).values
+        print(sum(alarmcount_list))
+        # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
+        index_list = data[data.hostname == hostname].index.tolist()
+        print(index_list)
+        data.ix[index_list,'alarm_count'] =data.ix[index_list,'alarm_count'].apply(lambda x:sum(alarmcount_list))
+        print(data[data['hostname']==hostname]['alarm_count'])
+
+
+
+    data['cpu_amm'] = (data['cpu_avg'].map(float)/((data['cpu_max'].map(float)-data['cpu_min'].map(float))/2)).map(str)
+    data['mem_amm'] = (data['mem_avg'].map(float)/((data['mem_max'].map(float)-data['mem_min'].map(float))/2)).map(str)
+    data['cpu_amm_1'] = (data['cpu_avg_1'].map(float)/((data['cpu_max_1'].map(float)-data['cpu_min_1'].map(float))/2)).map(str)
+    data['mem_amm_1'] = (data['mem_avg_1'].map(float)/((data['mem_max_1'].map(float)-data['mem_min_1'].map(float))/2)).map(str)
+    data['cpu_amm_2'] = (data['cpu_avg_2'].map(float)/((data['cpu_max_2'].map(float)-data['cpu_min_2'].map(float))/2)).map(str)
+    data['mem_amm_2'] = (data['mem_avg_2'].map(float)/((data['mem_max_2'].map(float)-data['mem_min_2'].map(float))/2)).map(str)
+    print(data)
+    print(data['alarm_count'])
+    data.replace(np.inf, np.nan)
+    data.fillna(0)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+def fix_inf(new_merged_alertgroup_file):
+    data = pd.read_csv(new_merged_alertgroup_file,sep=',',dtype=str)
+    data[data==np.inf] = 0
+    print(data)
 
 
 
