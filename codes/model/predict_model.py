@@ -22,6 +22,7 @@ from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
 from settings import *
 from sklearn.model_selection import KFold
+from imblearn.combine import SMOTEENN
 import pickle
 import pandas as pd
 # from xgboost import *
@@ -543,12 +544,12 @@ def plot_confusion_matrix(confusion_mat):
 
 def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
     model_save = {}
-    test_classifiers_list = [ 'RF']
-                            #  'GBDT',
-                            #    'KNN',
+    test_classifiers_list = [ 'RF',
+                             'GBDT',
+                               'KNN',
                             # #  'LR',
                             #,
-                            #   'DT']
+                               'DT']
                              # 'XGB']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
@@ -568,11 +569,15 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
         if alertgroup != 'Net':
         # if alertgroup == 'Ora' :
             print(alertgroup)
-            print(group['event'].value_counts())
+            # print(group['event'].value_counts())
             print('reading training and testing data...')
 
             train_x, test_x, train_y, test_y = get_data(group,split=True)
             print(test_y.value_counts())
+            sm = SMOTEENN()
+            X_resampled, y_resampled = sm.fit_sample(train_x, train_y)
+            train_x = pd.DataFrame(X_resampled.tolist())
+            train_y = pd.DataFrame(y_resampled)
             # train_x, test_x, train_y, test_y = read_data(data_file,split=True)
 
             for classifier in test_classifiers_list:
