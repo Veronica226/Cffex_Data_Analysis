@@ -121,6 +121,9 @@ def call_feature_extraction_func(flag=False):
         correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
         new_alarm_file = os.path.join(new_predict_data_dir, "new_alarm_data.csv")
         new_merged_file = os.path.join(new_predict_data_dir, "new_merged_data.csv")
+
+        new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
+        traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
         #将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中，并将所有主机的dataframe拼接在一起，形成一个特征矩阵
         # feature_extraction.generate_feature_by_hostname(new_plot_data_dir, new_predict_data)
 
@@ -135,7 +138,9 @@ def call_feature_extraction_func(flag=False):
         # feature_extraction.generate_data_matrix_and_vector(new_history_data_file,new_alarm_file,new_merged_file)
 
         #保留部分特征
-        feature_extraction.delete_feature(merged_final_file,no_disk_file)
+        # feature_extraction.delete_feature(new_merged_alertgroup_file,traing_data_file)
+
+        feature_extraction.generate_history_label(traing_data_file)
 
         #生成聚类所用的特征历史数据
         # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
@@ -167,6 +172,7 @@ def call_predict_model_func(flag=False):
         new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
         new_result_file = os.path.join(new_predict_data_dir, "new_result_data.csv")
         smote_result_file = os.path.join(new_predict_data_dir, "smote_result_data.csv")
+        traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
         # #包含若干分类器的预测模型
         # print('no cpu')
         # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
@@ -180,7 +186,7 @@ def call_predict_model_func(flag=False):
         # predict_model.classifiers_for_prediction(disk_only_file, model_save_file,history_predict_proba_file)
         # print('only mem')
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
-        predict_model.classifiers_for_prediction(new_merged_alertgroup_file, model_save_file, history_predict_proba_file,smote_result_file)
+        predict_model.classifiers_for_prediction(traing_data_file, model_save_file, history_predict_proba_file,new_result_file)
 
 
 def call_level_division_func(flag=False):
@@ -222,10 +228,10 @@ def call_anomaly_detection_func(flag=False):
         return
 
 if __name__ == '__main__':
-    call_data_preprocessing_func(flag=True)
+    call_data_preprocessing_func()
     call_feature_extraction_func()
     # print('最大最小时间差、平均值、alarm_count')
-    call_predict_model_func()
+    call_predict_model_func(flag=True)
 
     call_anomaly_detection_func()
     call_level_division_func()
