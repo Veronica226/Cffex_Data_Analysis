@@ -5,7 +5,7 @@ import pandas as pd
 from codes.preprocessing import data_preprocessing
 from codes.feature_engineering import feature_extraction
 from codes.model import predict_model, anomaly_detection
-from codes.clustering import level_division,correlation_analysis
+from codes.clustering import level_division,correlation_analysis, kpi_level_model
 from settings import *
 import os
 
@@ -198,7 +198,7 @@ def call_level_division_func(flag=False):
         alarm_content_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-content.csv')
         correlation_pair_file = os.path.join(multiclass_data_dir, "correlation_pair.csv")
         new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
-
+        kpi_level_model.create_kNN_model(cluster_data_dir)
         # level_division.hierarchical_clusterting()
         # level_division.get_cluster_data(cluster_series_data_file)
         # level_division.hierarchical_clusterting(cluster_series_data_file,5)
@@ -234,5 +234,5 @@ if __name__ == '__main__':
     call_predict_model_func(flag=True)
 
     call_anomaly_detection_func()
-    call_level_division_func()
+    call_level_division_func(flag=True)
 

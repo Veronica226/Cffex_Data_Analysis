@@ -23,6 +23,7 @@ hist_plot_dir = os.path.join(output_dir, 'hist_plot')
 cluster_data_dir =  os.path.join(output_dir,"cluster_data")
 cluster_plot_dir = os.path.join(output_dir,"cluster_plot")
 multiclass_data_dir = os.path.join(output_dir,"multi_classification_data")
+kpi_level_model_dir = os.path.join(output_dir, 'kpi_level_model')
 
 host_data_dir = os.path.join(output_dir, 'host_data')
 
