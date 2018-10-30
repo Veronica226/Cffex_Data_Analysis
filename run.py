@@ -234,5 +234,5 @@ if __name__ == '__main__':
     call_predict_model_func(flag=True)
 
     call_anomaly_detection_func()
-    call_level_division_func(flag=True)
+    call_level_division_func()
 

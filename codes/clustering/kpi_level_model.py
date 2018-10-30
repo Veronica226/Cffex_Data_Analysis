@@ -17,6 +17,7 @@ def create_kNN_model(data_dir):
     cluster_training_file_path = os.path.join(data_dir, 'cluster_series_data.csv')
     df = pd.read_csv(cluster_training_file_path, usecols=column_list)
     df['alertgroup'].fillna('Other', inplace=True)
+    # print(df['event'].value_counts())
     df['event'] = df['event'].map({0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3})
     df_train, df_test = train_test_split(df, test_size=0.2, random_state=50366)
     df_train.reset_index(drop=True, inplace=True)
@@ -63,17 +64,18 @@ def create_kNN_model(data_dir):
     print('other predict:\n', pd.Series(other_predict_results).value_counts())
 
     print('Finish create knn models!')
+    print(test_sample_num)
     predict_results = np.zeros(test_sample_num)
     df_res = pd.DataFrame(columns=['mode', 'max', 'group', 'predict', 'real'])
 
     for idx in range(test_sample_num):
         sample_predict_vec = np.array([np.round(biz_predict_results[idx]), np.round(mon_predict_results[idx]), np.round(ora_predict_results[idx]),
                                        np.round(trd_predict_results[idx]), np.round(other_predict_results[idx])])
-        mode_prediction_res = stats.mode(sample_predict_vec)[0][0]
-        max_prediction_res = sample_predict_vec[np.argmax(sample_predict_vec)]
+        mode_prediction_res = stats.mode(sample_predict_vec)[0][0] #5个模型预测结果的众数
+        max_prediction_res = sample_predict_vec[np.argmax(sample_predict_vec)] #5个模型预测结果的最大值
         alert_group_name = df_test.loc[idx, 'alertgroup']
         mapping_dict = {'Biz': 0, 'Mon': 1, 'Ora': 2, 'Trd': 3, 'Other': 4}
-        group_prediction_res = sample_predict_vec[mapping_dict[alert_group_name]] #group_prediction_val <= max_prediction_val
+        group_prediction_res = sample_predict_vec[mapping_dict[alert_group_name]] #group_prediction_val <= max_prediction_val， 该条数据对应的业务模型预测的结果
         if(mode_prediction_res <= 2 and max_prediction_res <= 2):
             predict_results[idx] = group_prediction_res
         else:
@@ -85,10 +87,16 @@ def create_kNN_model(data_dir):
     #df_predict_res.to_csv('predict_res_level.csv', sep=',', index=False)
     df_label_res = df_test['event'].copy()
     #df_label_res.to_csv('test_res_level.csv', sep=',', index=False)
+
+    # print(df_res)
     print(df_predict_res.value_counts())
 
     print(df_label_res.value_counts())
+
+    # generate_barplot(df_label_res,df_predict_res)
+    # generate_sample_plot(df_res['real'][150:200],df_res['predict'][150:200])
     print((df_predict_res.values != df_label_res).sum())
+    print((df_predict_res.values != df_label_res).sum()/test_sample_num)
     print(metrics.mean_absolute_error(df_predict_res, df_label_res))
     print(metrics.mean_squared_error(df_predict_res, df_label_res))
     return
@@ -96,6 +104,34 @@ def create_kNN_model(data_dir):
 #按业务划分最终的kNN model
 def create_grouped_kNN_model(data_dir):
     return
+
+def generate_barplot(label,result):
+    label_list =(label.value_counts()).tolist()
+    result_list = (result.value_counts()).tolist()
+    name_list = ['level_1','level_2','level_3']
+    x = list(range(len(label_list)))
+    total_width, n = 0.8, 2
+    width = total_width / n
+
+    plt.bar(x, label_list, width=width, label='real', fc='y')
+    for i, j in zip(x, label_list):
+        plt.text(i, j + 0.1, str(j), ha='center')
+    for i in range(len(x)):
+        x[i] = x[i] + width
+    plt.bar(x, result_list, width=width, label='predict', tick_label=name_list, fc='r')
+    for i, j in zip(x, result_list):
+        plt.text(i, j + 0.1, str(j), ha='center')
+    plt.title('level predict result')
+    plt.legend()
+    plt.show()
+
+def generate_sample_plot(label,result):
+    axix = range(0,len(label),1)
+    plt.title('level predict result')
+    plt.plot(axix,label,color = 'red',label='real')
+    plt.plot(axix, result, color='lightgreen', label='predict')
+    plt.legend()
+    plt.show()
 
 
 def predict():

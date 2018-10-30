@@ -586,7 +586,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
 
                 precision = metrics.precision_score(test_y, predict)
                 recall = metrics.recall_score(test_y, predict)
-                fbetascore = fbeta_score(test_y, predict, 2)
+                fbetascore = fbeta_score(test_y, predict, 0.5)
                 accuracy = metrics.accuracy_score(test_y, predict)
                 model_score = model.score(test_x, test_y)
                 print('precision: %.6f' % (100 *precision))
