@@ -46,6 +46,9 @@ def process_raw_data(origin_dir, output_dir):
                 df = pd.DataFrame(data_list)
                 #print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
+            num += 1
+            # if(num > 1):
+            #     break
     print('process raw data finished!')
 
 #只获取时间、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
