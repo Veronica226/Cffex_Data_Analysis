@@ -230,20 +230,35 @@ def delete_feature(origin_file, output_file):
     data = pd.read_csv(origin_file, sep=',', dtype = str)
     print(data)
     #要去掉的特征list
-    drop_column_list =[#'cpu_max', 'cpu_min',
-                      'boot_max', 'boot_min', 'home_max', 'home_min',
-                      'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-                      'tmp_max', 'tmp_min',
-                      # 'mem_max', 'mem_min',
-                      #  'cpu_max_1', 'cpu_min_1',
-                      'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
-                      'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
-                      'tmp_max_1', 'tmp_min_1',
-                      # 'mem_max_1', 'mem_min_1',
-                      #   'cpu_max_2', 'cpu_min_2',
+    drop_column_list =['cpu_maxt', 'cpu_mint',
+                      'boot_avg','boot_maxt','boot_max',
+                       'boot_mint','boot_min',
+                       'home_avg','home_maxt', 'home_max', 'home_mint','home_min',
+                      'monitor_avg','monitor_maxt','monitor_max', 'monitor_mint',  'monitor_min',
+                       'rt_avg','rt_maxt','rt_max', 'rt_mint', 'rt_min',
+                      'tmp_avg','tmp_maxt','tmp_max', 'tmp_mint', 'tmp_min',
+                      'mem_maxt', 'mem_mint',
+                       'cpu_maxt_1', 'cpu_mint_1',
+                       'boot_avg_1', 'boot_maxt_1', 'boot_max_1',
+                       'boot_mint_1', 'boot_min_1',
+                       'home_avg_1', 'home_maxt_1', 'home_max_1', 'home_mint_1', 'home_min_1',
+                       'monitor_avg_1', 'monitor_maxt_1', 'monitor_max_1', 'monitor_mint_1', 'monitor_min_1',
+                       'rt_avg_1', 'rt_maxt_1', 'rt_max_1', 'rt_mint_1', 'rt_min_1',
+                       'tmp_avg_1', 'tmp_maxt_1', 'tmp_max_1', 'tmp_mint_1', 'tmp_min_1',
+                       'mem_maxt_1', 'mem_mint_1',
+                       'cpu_maxt_2', 'cpu_mint_2',
+                       'boot_avg_2', 'boot_maxt_2', 'boot_max_2',
+                       'boot_mint_2', 'boot_min_2',
+                       'home_avg_2', 'home_maxt_2', 'home_max_2', 'home_mint_2', 'home_min_2',
+                       'monitor_avg_2', 'monitor_maxt_2', 'monitor_max_2', 'monitor_mint_2', 'monitor_min_2',
+                       'rt_avg_2', 'rt_maxt_2', 'rt_max_2', 'rt_mint_2', 'rt_min_2',
+                       'tmp_avg_2', 'tmp_maxt_2', 'tmp_max_2', 'tmp_mint_2', 'tmp_min_2',
+                       'mem_maxt_2', 'mem_mint_2',
                       'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
                       'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
-                      'tmp_max_2', 'tmp_min_2']
+                      'tmp_max_2', 'tmp_min_2',
+                       'cpu_dt', 'mem_dt', 'cpu_dt_1', 'mem_dt_1', 'cpu_dt_2', 'mem_dt_2', 'cpu_amm', 'mem_amm',
+                       'cpu_amm_1', 'mem_amm_1','cpu_amm_2', 'mem_amm_2']
                       # 'mem_max_2', 'mem_min_2']
     data.drop(drop_column_list,axis=1,inplace=True)
     print(data)
@@ -377,6 +392,32 @@ def generate_cluster_data(cluster_history_data_file,alarm_file,cluster_merge_dat
     # print(merged_df['content'].value)
     # print(merged_df[merged_df['event'] == '1'].shape)
 
+def generate_history_label(merged_data_file):
+    df = pd.read_csv(merged_data_file,sep=',', dtype=str)
+    new_df = df[['hostname','archour','event']]
+
+    new_df.columns = ['hostname','archour','pre_event']
+    new_df.drop_duplicates(inplace=True)
+    new_df['archour'] = new_df['archour'].apply(trans_date)
+    merged_df = pd.merge(df, new_df, on=['hostname','archour'], how="inner", left_index=False,
+                         right_index=False)
+    print(merged_df)
+    merged_df.to_csv(merged_data_file, sep=',', index=False)
+    print(merged_df['pre_event'].value_counts())
+    print(merged_df['event'].value_counts())
+    print(df['event'].value_counts())
+
+def trans_date(date_str):
+    #2018-01-24 02:00:00
+    hour = int(date_str[11:13])
+    hour+=1
+    if hour<=9 :
+        str_hour = '0'+str(hour)
+    else:
+        str_hour = str(hour)
+    new_str = date_str[:11] +str_hour+ date_str[13:]
+    print(new_str)
+    return new_str
 
 
 

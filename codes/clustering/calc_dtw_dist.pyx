@@ -27,3 +27,6 @@ cdef calc_dtw_dist(double data[][], int n, int m):
         for j in range(i + 1, n):
             dis_mat[i, j] = dis_mat[j, i] = DTW(data[i], data[j])
     return dis_mat
+
+def calc_dtw_distance(data, n, m):
+    return calc_dtw_dist(data, n, m)
