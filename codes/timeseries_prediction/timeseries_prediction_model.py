@@ -20,27 +20,143 @@ from sklearn import ensemble
 from sklearn import svm
 from sklearn import neighbors
 
-def predict(timeseries, result_length, model):
-	if model == 'baseline':
-		1
-	elif model == 'MA':
-		2
-	elif model == 'ES':
-		3
-	elif model == 'ES_Trend':
-		4
-	elif model == 'EWMA':
-		5
-	elif model == 'Wavelet':
-		6
-	elif model == 'RFR':
-		7
-	elif model == 'SVR':
-		8
-	elif model == 'KNN':
-		9
-	elif model == 'LSTM':
-		10
+# 预测函数封装样例
+def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12, ES_factor=0.7, ES_trend_factor=0.5, EWMA_factor=0.6, RFR_tree_num=20, LSTM_term_num=1500, LSTM_neuron_num=5):
+	feature = ['avgvalue','maxvalue','minvalue']
+	columns_cpu = ['cpu_avg','cpu_max','cpu_min']
+	columns_mem = ['mem_avg','mem_max','mem_min']
+	result = pd.DataFrame()
+
+	columns_indices = 0
+	for j in feature:
+		timeseries = cpu_data[j]
+		if model == 'baseline':
+			predict_TS = baseline_model(timeseries, result_length)
+			predictions = predict_TS.values
+		elif model == 'MA':
+			predict_TS = moving_average_model(timeseries, MA_window, result_length)
+			predictions = predict_TS.values
+		elif model == 'ES':
+			predict_TS = exponential_smoothing_model(timeseries, ES_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'ES_Trend':
+			predict_TS = exponential_smoothing_trend_adjustment_model(timeseries, ES_factor, ES_trend_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'EWMA':
+			predict_TS = exponential_weight_moving_average_model(timeseries, EWMA_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'Wavelet':
+			try:
+				predict_TS = wavelet_ARMA_model(timeseries, result_length)
+				predictions = predict_TS.values
+			except:
+				print('data can not be stationary')
+		elif model == 'RFR':
+			predict_TS = random_forest_regressor_model(timeseries, result_length, tree_num)
+			predictions = predict_TS.tolist()
+		elif model == 'SVR':
+			predict_TS = surpport_vector_regressor_model(timeseries, result_length)
+			predictions = predict_TS.tolist()
+		elif model == 'KNN':
+			predict_TS = k_neighbors_regressor_model(timeseries, result_length)
+			predictions = predict_TS.tolist()
+		elif model == 'LSTM':
+			testlen = result_length
+			# 把数据变得平稳
+			raw_values = timeseries.values
+			diff_values = difference(raw_values, 1)
+			# 转换数据变成监督学习问题
+			supervised = timeseries_to_supervised(diff_values, 1)
+			supervised_values = supervised.values
+			# 把数据分成训练数据集和测试数据集
+			train, test = supervised_values[0:-testlen], supervised_values[-testlen:]
+			# 缩放数据
+			scaler, train_scaled, test_scaled = scale(train, test)
+			# 拟合模型
+			lstm_model = fit_lstm(train_scaled, 1, LSTM_term_num, LSTM_neuron_num)
+			# 预测训练集
+			train_reshaped = train_scaled[:, 0].reshape(len(train_scaled), 1, 1)
+			lstm_model.predict(train_reshaped, batch_size=1)
+			# 在测试数据集上的前向验证
+			predictions = list()
+			for i in range(len(test_scaled)):
+				# 做出一步预测
+				X, y = test_scaled[i, 0:-1], test_scaled[i, -1]
+				yhat = forecast_lstm(lstm_model, 1, X)
+				# 反向缩放
+				yhat = invert_scale(scaler, X, yhat)
+				# 反向转换差分化数据
+				yhat = inverse_difference(raw_values, yhat, len(test_scaled)+1-i)
+				# 存储预测值
+				predictions.append(yhat)
+		result[columns_cpu[columns_indices]] = predictions
+		columns_indices = columns_indices + 1
+
+	columns_indices = 0
+	for j in feature:
+		timeseries = mem_data[j]
+		if model == 'baseline':
+			predict_TS = baseline_model(timeseries, result_length)
+			predictions = predict_TS.values
+		elif model == 'MA':
+			predict_TS = moving_average_model(timeseries, MA_window, result_length)
+			predictions = predict_TS.values
+		elif model == 'ES':
+			predict_TS = exponential_smoothing_model(timeseries, ES_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'ES_Trend':
+			predict_TS = exponential_smoothing_trend_adjustment_model(timeseries, ES_factor, ES_trend_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'EWMA':
+			predict_TS = exponential_weight_moving_average_model(timeseries, EWMA_factor, result_length)
+			predictions = predict_TS.values
+		elif model == 'Wavelet':
+			try:
+				predict_TS = wavelet_ARMA_model(timeseries, result_length)
+				predictions = predict_TS.values
+			except:
+				print('data can not be stationary')
+		elif model == 'RFR':
+			predict_TS = random_forest_regressor_model(timeseries, result_length, tree_num)
+			predictions = predict_TS.tolist()
+		elif model == 'SVR':
+			predict_TS = surpport_vector_regressor_model(timeseries, result_length)
+			predictions = predict_TS.tolist()
+		elif model == 'KNN':
+			predict_TS = k_neighbors_regressor_model(timeseries, result_length)
+			predictions = predict_TS.tolist()
+		elif model == 'LSTM':
+			testlen = result_length
+			# 把数据变得平稳
+			raw_values = timeseries.values
+			diff_values = difference(raw_values, 1)
+			# 转换数据变成监督学习问题
+			supervised = timeseries_to_supervised(diff_values, 1)
+			supervised_values = supervised.values
+			# 把数据分成训练数据集和测试数据集
+			train, test = supervised_values[0:-testlen], supervised_values[-testlen:]
+			# 缩放数据
+			scaler, train_scaled, test_scaled = scale(train, test)
+			# 拟合模型
+			lstm_model = fit_lstm(train_scaled, 1, LSTM_term_num, LSTM_neuron_num)
+			# 预测训练集
+			train_reshaped = train_scaled[:, 0].reshape(len(train_scaled), 1, 1)
+			lstm_model.predict(train_reshaped, batch_size=1)
+			# 在测试数据集上的前向验证
+			predictions = list()
+			for i in range(len(test_scaled)):
+				# 做出一步预测
+				X, y = test_scaled[i, 0:-1], test_scaled[i, -1]
+				yhat = forecast_lstm(lstm_model, 1, X)
+				# 反向缩放
+				yhat = invert_scale(scaler, X, yhat)
+				# 反向转换差分化数据
+				yhat = inverse_difference(raw_values, yhat, len(test_scaled)+1-i)
+				# 存储预测值
+				predictions.append(yhat)
+		result[columns_mem[columns_indices]] = predictions
+		columns_indices = columns_indices + 1
+	return result
 	
 
 # 基线模型
@@ -138,9 +254,9 @@ def wavelet_ARMA_model(timeseries, result_length):
 	return Wavelet_TS['pre_value']
 
 # 随机森林回归模型
-def random_forest_regressor_model(timeseries, result_length):
+def random_forest_regressor_model(timeseries, result_length, tree_num):
 	train_set,varify_set,predict_set = construct_mechine_learning_set(timeseries, result_length)
-	RFR = ensemble.RandomForestRegressor(n_estimators=40)#用20个决策树
+	RFR = ensemble.RandomForestRegressor(tree_num)
 	RFR.fit(train_set,varify_set)
 	RFR_TS = RFR.predict(predict_set)
 	return RFR_TS
