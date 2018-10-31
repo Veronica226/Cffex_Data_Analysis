@@ -7,6 +7,8 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import acf,pacf
 from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima_model import ARMA
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
@@ -14,18 +16,24 @@ from datetime import datetime,timedelta
 
 import pywt
 import statsmodels.api as sm
-from statsmodels.tsa.arima_model import ARMA
 
 from sklearn import ensemble
 from sklearn import svm
 from sklearn import neighbors
 
+
+# LSTM支持包
+# from keras.models import Sequential
+# from keras.layers import Dense
+# from keras.layers import LSTM
+
 # 预测函数封装样例
-def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12, ES_factor=0.7, ES_trend_factor=0.5, EWMA_factor=0.6, RFR_tree_num=20, LSTM_term_num=1500, LSTM_neuron_num=5):
+def predict(host, cpu_data, mem_data, result_length=30, model='baseline', MA_window=12, ES_factor=0.7, ES_trend_factor=0.5, EWMA_factor=0.6, RFR_tree_num=20, LSTM_term_num=1500, LSTM_neuron_num=5):
 	feature = ['avgvalue','maxvalue','minvalue']
-	columns_cpu = ['cpu_avg','cpu_max','cpu_min']
-	columns_mem = ['mem_avg','mem_max','mem_min']
+	columns_cpu = ['cpu_avg','cpu_max','cpu_min','cpu_avg_1','cpu_max_1','cpu_min_1','cpu_avg_2','cpu_max_2','cpu_min_2']
+	columns_mem = ['mem_avg','mem_max','mem_min','mem_avg_1','mem_max_1','mem_min_1','mem_avg_2','mem_max_2','mem_min_2']
 	result = pd.DataFrame()
+	result = result.append({'host':host},ignore_index = True)
 
 	columns_indices = 0
 	for j in feature:
@@ -89,7 +97,9 @@ def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12
 				yhat = inverse_difference(raw_values, yhat, len(test_scaled)+1-i)
 				# 存储预测值
 				predictions.append(yhat)
-		result[columns_cpu[columns_indices]] = predictions
+		result[columns_cpu[columns_indices]] = predictions[-1:]
+		result[columns_cpu[columns_indices+3]] = timeseries.iloc[[len(timeseries)-1]][0]
+		result[columns_cpu[columns_indices+6]] = timeseries.iloc[[len(timeseries)-2]][0]
 		columns_indices = columns_indices + 1
 
 	columns_indices = 0
@@ -154,7 +164,9 @@ def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12
 				yhat = inverse_difference(raw_values, yhat, len(test_scaled)+1-i)
 				# 存储预测值
 				predictions.append(yhat)
-		result[columns_mem[columns_indices]] = predictions
+		result[columns_cpu[columns_indices]] = predictions[-1:]
+		result[columns_cpu[columns_indices+3]] = timeseries.iloc[[len(timeseries)-1]][0]
+		result[columns_cpu[columns_indices+6]] = timeseries.iloc[[len(timeseries)-2]][0]
 		columns_indices = columns_indices + 1
 	return result
 	

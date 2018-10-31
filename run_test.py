@@ -20,6 +20,75 @@ from sklearn import ensemble
 from sklearn import svm
 from sklearn import neighbors
 
+# 预测调用函数样例
+def run_test_predict():
+	predict_result = pd.DataFrame()
+	# 可选预测模型
+	predict_model = [
+		# 基线模型，用于对比，优于该模型则说明建模有效
+		'baseline',
+		# 滑动平均模型
+		'MA',
+		# 指数平滑模型
+		'ES',
+		# 指数平滑趋势调整模型
+		'ES_Trend',
+		# 指数加权移动平均模型
+		'EWMA',
+		# 小波变换分解+ARMA
+		'Wavelet',
+		# 随机森林回归
+		'RFR',
+		# 支持向量机回归
+		'SVR',
+		# K邻近回归
+		'KNN',
+		# 长短期记忆神经网络
+		'LSTM'
+	]
+
+	# 时间序列预测部分
+	csv_dir = r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info-cpu-mem'
+	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
+	f_list = os.listdir(csv_dir)
+	for i in range(len(f_list)):
+		if i%2==1:
+			continue
+		else:
+			# 文件名处理
+			filename_split = f_list[i].split('.')
+			filename_split = filename_split[0].split('_')
+			filename_split.pop()
+			filename = '_'
+			filename = filename.join(filename_split)
+			print(filename +' done')
+			# cpu数据准备
+			cpu_data = pd.read_csv(os.path.join(csv_dir,f_list[i]),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
+			# mem数据准备
+			mem_data = pd.read_csv(os.path.join(csv_dir,f_list[i+1]),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
+			# 进行预测
+			predict_result = predict_result.append(timeseries_prediction_model.predict(filename,cpu_data, mem_data, result_length=50, model='SVR'))
+
+	# timeseries_prediction_model.predict()
+	# 参数列表：
+	# 		必须参数：
+	# 			cpu_data：主机cpu数据
+	# 			mem_data：主机mem数据
+	# 			result_length：预期返回的数据期数，默认30
+	# 			model：预期使用的预测模型，默认基线模型
+	# 		可选参数：
+	# 			MA_window：移动平均模型移动窗口大小，默认12
+	# 			ES_factor：指数平滑模型平滑系数，默认0.7
+	# 			ES_Trand_factor：指数平滑趋势调整系数，默认0.5
+	# 			EWMA_factor：指数加权移动平均系数，默认0.6
+	# 			RFR_tree_num：随机森林树数量，默认20
+	# 			LSTM_term_num：长短期记忆神经网络时间点数量，默认1500
+	# 			LSTM_neuron_num：长短期记忆神经网络神经元数量，默认5
+	# 样例调用：
+	# predict_result = timeseries_prediction_model.predict('2018_vcsdb1_hourly',cpu_data, mem_data, result_length=50, model='SVR')
+	
+	predict_result.to_csv('output_data\\TS_predict_result.csv', index = 0, encoding = 'UTF-8')
+
 # 单独调用样例
 def run_tests():
 	csv_dir = r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info-cpu-mem'
@@ -90,55 +159,6 @@ def run_tests():
                                             'KNN_TS_RMSE':KNN_TS_RMSE,
                                            },ignore_index = True)
 		predict_result.to_csv('output_data\\TS_predict_result_RMSE.csv', index = 0, encoding = 'UTF-8')
-
-# 预测调用函数样例
-def run_test_predict():
-	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
-	cpu_data = pd.read_csv(r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info\2018_vcsdb1_hourly_cpu.csv',encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
-	mem_data = pd.read_csv(r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info\2018_vcsdb1_hourly_mem.csv',encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
-	
-	# 可选预测模型
-	predict_model = [
-		# 基线模型，用于对比，优于该模型则说明建模有效
-		'baseline',
-		# 滑动平均模型
-		'MA',
-		# 指数平滑模型
-		'ES',
-		# 指数平滑趋势调整模型
-		'ES_Trend',
-		# 指数加权移动平均模型
-		'EWMA',
-		# 小波变换分解+ARMA
-		'Wavelet',
-		# 随机森林回归
-		'RFR',
-		# 支持向量机回归
-		'SVR',
-		# K邻近回归
-		'KNN',
-		# 长短期记忆神经网络
-		'LSTM'
-	]
-
-	# 参数列表：
-	# 		必须参数：
-	# 			cpu_data：主机cpu数据
-	# 			mem_data：主机mem数据
-	# 			result_length：预期返回的数据期数，默认30
-	# 			model：预期使用的预测模型，默认基线模型
-	# 		可选参数：
-	# 			MA_window：移动平均模型移动窗口大小，默认12
-	# 			ES_factor：指数平滑模型平滑系数，默认0.7
-	# 			ES_Trand_factor：指数平滑趋势调整系数，默认0.5
-	# 			EWMA_factor：指数加权移动平均系数，默认0.6
-	# 			RFR_tree_num：随机森林树数量，默认20
-	# 			LSTM_term_num：长短期记忆神经网络时间点数量，默认1500
-	# 			LSTM_neuron_num：长短期记忆神经网络神经元数量，默认5
-	predict_result = timeseries_prediction_model.predict(cpu_data, mem_data, result_length=50, model='SVR')
-	
-	predict_result.to_csv('output_data\\TS_predict_result.csv', index = 0, encoding = 'UTF-8')
-
 
 if __name__ == '__main__':
     # run_tests()
