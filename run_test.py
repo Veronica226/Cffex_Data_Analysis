@@ -2,8 +2,12 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pylab as plt
+from scipy.stats import stats
 
 from codes.timeseries_prediction import timeseries_prediction_model
+from codes.preprocessing import data_preprocessing
+from codes.model import predict_model
+from codes.clustering import kpi_level_model
 
 from matplotlib.pylab import rcParams
 from statsmodels.tsa.stattools import adfuller
@@ -15,13 +19,13 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 from math import sqrt
 from datetime import datetime,timedelta
-
+from settings import output_dir
 from sklearn import ensemble
 from sklearn import svm
 from sklearn import neighbors
-
+from settings import output_dir,alarm_data_dir,new_predict_data_dir,cluster_data_dir
 # 预测调用函数样例
-def run_test_predict():
+def run_test_predict(out_file_name):
 	predict_result = pd.DataFrame()
 	# 可选预测模型
 	predict_model = [
@@ -48,7 +52,7 @@ def run_test_predict():
 	]
 
 	# 时间序列预测部分
-	csv_dir = r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info-cpu-mem'
+	csv_dir = os.path.join(output_dir,'cffex-host-info-cpu-mem')
 	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
 	f_list = os.listdir(csv_dir)
 	for i in range(len(f_list)):
@@ -57,6 +61,7 @@ def run_test_predict():
 		else:
 			# 文件名处理
 			filename_split = f_list[i].split('.')
+			host_name = filename_split[0][5:-11]
 			filename_split = filename_split[0].split('_')
 			filename_split.pop()
 			filename = '_'
@@ -67,8 +72,7 @@ def run_test_predict():
 			# mem数据准备
 			mem_data = pd.read_csv(os.path.join(csv_dir,f_list[i+1]),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
 			# 进行预测
-			predict_result = predict_result.append(timeseries_prediction_model.predict(filename,cpu_data, mem_data, result_length=50, model='SVR'))
-
+			predict_result = predict_result.append(timeseries_prediction_model.predict(host_name,cpu_data, mem_data, result_length=50, model='SVR'))
 	# timeseries_prediction_model.predict()
 	# 参数列表：
 	# 		必须参数：
@@ -86,12 +90,101 @@ def run_test_predict():
 	# 			LSTM_neuron_num：长短期记忆神经网络神经元数量，默认5
 	# 样例调用：
 	# predict_result = timeseries_prediction_model.predict('2018_vcsdb1_hourly',cpu_data, mem_data, result_length=50, model='SVR')
-	
-	predict_result.to_csv('output_data\\TS_predict_result.csv', index = 0, encoding = 'UTF-8')
+	predict_result.to_csv(out_file_name, index = 0, encoding = 'UTF-8')
 
 # 单独调用样例
-from settings import output_dir
+def test_classifier_model(out_file_name,predict_result_file):
+	traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
+	alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
+	data_preprocessing.get_alertgroup_by_hostname(alertgroup_file, out_file_name)
+	data = pd.read_csv(out_file_name, sep=',', dtype=str)
+	all_df = pd.DataFrame(columns=['alertgroup','classifier', 'hostname', 'predict_event'])
 
+	for alertgroup,group in data.groupby('alertgroup'):
+		if alertgroup!='Net':
+			print(str(alertgroup)+' start')
+			col_list = [
+				'cpu_avg',
+				'cpu_max',
+				'cpu_min',
+				'mem_avg',
+				'mem_max',
+				'mem_min',
+				'cpu_avg_1',
+				'cpu_max_1',
+				'cpu_min_1',
+				'mem_avg_1',
+				'mem_max_1',
+				'mem_min_1',
+				'cpu_avg_2',
+				'cpu_max_2',
+				'cpu_min_2',
+				'mem_avg_2',
+				'mem_max_2',
+				'mem_min_2']
+			test_classifiers_list = ['RF',
+									 'GBDT',
+									 'KNN',
+									 'DT']
+			data = group[col_list]
+			# data.replace(-np.inf, np.nan)
+			# data.fillna(0)
+			data = data.convert_objects(convert_numeric=True)
+			for classifier in test_classifiers_list:
+				print(str(classifier)+' start')
+				model = predict_model.test_classifier_for_prediction(traing_data_file,alertgroup,classifier)
+				predict = model.predict(data)
+
+				new_df = pd.DataFrame(columns=['alertgroup', 'classifier', 'hostname', 'predict_event'])
+				new_df['hostname'] = group['hostname']
+				new_df['predict_event'] = predict
+				new_df['classifier'] = classifier
+				new_df['alertgroup'] = alertgroup
+				new_df = new_df.join(data,how='outer')
+				print(new_df['predict_event'].value_counts())
+				all_df = pd.concat([all_df, new_df])
+
+		all_df.to_csv(predict_result_file,sep=',',index=False)
+
+def test_kpi_level_model(predict_result_file,final_result_file):
+	df = pd.read_csv(predict_result_file, sep=',',dtype=str)
+	df = df[df['predict_event']=='1']
+	mapping_dict = {'Biz': 0, 'Mon': 1, 'Ora': 2, 'Trd': 3, 'Other': 4}
+	knn_model_list = []
+	knn_model_list = kpi_level_model.test_KNN_model(cluster_data_dir)
+	all_df = pd.DataFrame(columns=['alertgroup', 'classifier', 'hostname', 'predict_event','predict_level'])
+	for alertgroup,group in df.groupby('alertgroup'):
+		column_list = ['cpu_max', 'cpu_min', 'mem_max', 'mem_min', 'cpu_max_1', 'cpu_min_1', 'mem_max_1', 'mem_min_1',
+				   'cpu_max_2', 'cpu_min_2', 'mem_max_2', 'mem_min_2']
+		data = group[column_list]
+		kpi_predict_result = []
+		for i in knn_model_list:
+			kpi_predict_result.append(i.predict(data))
+		print(kpi_predict_result)
+		predict_results = np.zeros(len(group))
+		df_res = pd.DataFrame(columns=['predict_level'])
+		for idx in range(len(group)):
+			sample_predict_vec = np.array([np.round(kpi_predict_result[0][idx]), np.round(kpi_predict_result[1][idx]),
+										   np.round(kpi_predict_result[2][idx]),
+										   np.round(kpi_predict_result[3][idx]), np.round(kpi_predict_result[4][idx])])
+			# print(sample_predict_vec)
+			mode_prediction_res = stats.mode(sample_predict_vec)[0][0]  # 5个模型预测结果的众数
+			print(mode_prediction_res)
+			max_prediction_res = sample_predict_vec[np.argmax(sample_predict_vec)]  # 5个模型预测结果的最大值
+			print(max_prediction_res)
+			group_prediction_res = sample_predict_vec[mapping_dict[alertgroup]]  # group_prediction_val <= max_prediction_val， 该条数据对应的业务模型预测的结果
+			print(group_prediction_res)
+			if (mode_prediction_res <= 2 and max_prediction_res <= 2):
+				predict_results[idx] = group_prediction_res
+			else:
+				predict_results[idx] = max_prediction_res
+			df_res.loc[idx] = int(predict_results[idx])
+
+		new_df = group[['alertgroup', 'classifier', 'hostname', 'predict_event']].reset_index(drop=True).join(df_res,how = 'outer')
+		all_df = pd.concat([all_df, new_df])
+
+	print(all_df)
+	all_df.to_csv(final_result_file, sep=',', index=False)
 
 def run_tests():
 	csv_dir = r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info-cpu-mem'
@@ -165,4 +258,11 @@ def run_tests():
 
 if __name__ == '__main__':
     # run_tests()
-    run_test_predict()
+
+   model_save_file = os.path.join(output_dir,'classifier_model.csv')
+   out_file_name = os.path.join(output_dir,'TS_predict_result.csv')
+   predict_result_file = os.path.join(output_dir,'alarm_prediction.csv')
+   final_result_file = os.path.join(output_dir,'final_prediction_result.csv')
+   run_test_predict(out_file_name)   #预测时间序列
+   test_classifier_model(out_file_name,predict_result_file)  #分类器预测
+   test_kpi_level_model(predict_result_file,final_result_file) #告警级别划分

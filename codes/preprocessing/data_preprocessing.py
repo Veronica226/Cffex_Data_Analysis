@@ -6,6 +6,8 @@ import numpy as np
 from datetime import datetime, timedelta, time
 import os, sys, json, csv, re, gc
 
+import shutil
+
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
 ######################################################################################
 #Author: 王靖文
@@ -402,9 +404,26 @@ def fix_inf(new_merged_alertgroup_file):
     data[data==np.inf] = 0
     print(data)
 
+def delete_disk_files(info_file_dir,out_file_dir):
+    if not os.path.exists(out_file_dir):
+        os.makedirs(out_file_dir)
+    f_list = os.listdir(info_file_dir)
+    for file in f_list:
+        file_name = os.path.splitext(file)[0]
+        if file_name.endswith('disk') == False:
+            shutil.copyfile(os.path.join(info_file_dir,file),os.path.join(out_file_dir,file))
 
-
-
+def get_host_name(file_name):
+    f_name = os.path.splitext(file_name)[0].split('_')
+    ele = ["cpu", "mem"]
+    host_name_list = []
+    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
+        if e in f_name:
+            h = f_name.index(e)
+    for a in range(0, h):
+        host_name_list.append(f_name[a])
+    host_name = '_'.join(host_name_list)
+    return host_name
 
 ######################################################################################
 #Author: 普俊韬

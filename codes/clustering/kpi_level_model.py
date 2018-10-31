@@ -139,6 +139,53 @@ def predict():
         'cpu_avg_2', 'cpu_max_2', 'cpu_min_2', 'mem_avg_2', 'mem_max_2', 'mem_min_2']
     return
 
+def test_KNN_model(data_dir):
+
+    column_list = ['cpu_max', 'cpu_min', 'mem_max', 'mem_min', 'cpu_max_1', 'cpu_min_1', 'mem_max_1', 'mem_min_1',
+                       'cpu_max_2', 'cpu_min_2', 'mem_max_2', 'mem_min_2', 'event', 'alertgroup']
+    cluster_training_file_path = os.path.join(data_dir, 'cluster_series_data.csv')
+    df = pd.read_csv(cluster_training_file_path, usecols=column_list)
+    df['alertgroup'].fillna('Other', inplace=True)
+    df['event'] = df['event'].map({0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3})
+    df_train, df_test = train_test_split(df, test_size=0.2, random_state=50366)
+    df_train.reset_index(drop=True, inplace=True)
+    df_test.reset_index(drop=True, inplace=True)
+
+    print(df_test['alertgroup'].unique())
+    test_sample_num = df_test.shape[0]
+
+    alert_groups = df_train.groupby('alertgroup')
+    biz_data = alert_groups.get_group('Biz')
+    print('Start create knn models!')
+    biz_knn_model = KNeighborsRegressor(n_neighbors=3, algorithm='auto',
+                                            leaf_size=30)  # , metric='correlation') #biz knn model的event level是0,1,3,4
+    biz_knn_model.fit(biz_data.drop(['alertgroup', 'event'], axis=1), biz_data['event'])
+
+
+    mon_data = alert_groups.get_group('Mon')
+    mon_knn_model = KNeighborsRegressor(n_neighbors=3, algorithm='auto',
+                                            leaf_size=30)  # , metric='correlation') #mon knn model的event level是0,1,3,4,5
+    mon_knn_model.fit(mon_data.drop(['alertgroup', 'event'], axis=1), mon_data['event'])
+
+
+    ora_data = alert_groups.get_group('Ora')
+    ora_knn_model = KNeighborsRegressor(n_neighbors=3, algorithm='auto',
+                                            leaf_size=30)  # , metric='correlation')  #ora knn model的event level是0,1,3,4
+    ora_knn_model.fit(ora_data.drop(['alertgroup', 'event'], axis=1), ora_data['event'])
+
+    trd_data = alert_groups.get_group('Trd')
+    trd_knn_model = KNeighborsRegressor(n_neighbors=3, algorithm='auto',
+                                            leaf_size=30)  # , metric='correlation')  #trd knn model的event level是0,2,4
+    trd_knn_model.fit(trd_data.drop(['alertgroup', 'event'], axis=1), trd_data['event'])
+
+
+    other_data = alert_groups.get_group('Other')
+    other_knn_model = KNeighborsRegressor(n_neighbors=3, algorithm='auto',
+                                              leaf_size=30)  # , metric='correlation')  #trd knn model的event level是0,2,4
+    other_knn_model.fit(other_data.drop(['alertgroup', 'event'], axis=1), other_data['event'])
+
+    return biz_knn_model,mon_knn_model,ora_knn_model,trd_knn_model,other_knn_model
+
 
 if __name__ == '__main__':
     create_kNN_model(cluster_data_dir)

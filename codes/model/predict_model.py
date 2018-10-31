@@ -330,27 +330,10 @@ def get_data(data_df,split):
                 'mem_avg_2',
                 'mem_max_2',
                 'mem_min_2',
-                'alarm_count',
-                'event',
-                'pre_event']
-                # 'cpu_dt','mem_dt','cpu_dt_1','mem_dt_1','cpu_dt_2','mem_dt_2'
-                # 'cpu_amm','mem_amm','cpu_amm_1','mem_amm_1','cpu_amm_2','mem_amm_2']
-    # col_list = ['cpu_max', 'cpu_min',
-    #             # 'boot_max', 'boot_min', 'home_max', 'home_min',
-    #             # 'monitor_max', 'monitor_min', 'rt_max', 'rt_min',
-    #              # 'tmp_max', 'tmp_min',
-    #               'mem_max', 'mem_min',
-    #                'cpu_max_1', 'cpu_min_1',
-    #                 # 'boot_max_1', 'boot_min_1','home_max_1', 'home_min_1',
-    #                 # 'monitor_max_1', 'monitor_min_1','rt_max_1', 'rt_min_1',
-    #                 # 'tmp_max_1', 'tmp_min_1',
-    #               'mem_max_1', 'mem_min_1',
-    #               'cpu_max_2', 'cpu_min_2',
-    #               # 'boot_max_2', 'boot_min_2', 'home_max_2', 'home_min_2',
-    #               # 'monitor_max_2', 'monitor_min_2', 'rt_max_2', 'rt_min_2',
-    #               # 'tmp_max_2', 'tmp_min_2',
-    #                 'mem_max_2', 'mem_min_2',
-    #                  'event']
+                # 'alarm_count',
+                'event']
+                # 'pre_event']
+
     data = data_df[col_list]
     # data.replace(-np.inf, np.nan)
     # data.fillna(0)
@@ -367,7 +350,6 @@ def get_data(data_df,split):
         return train_test_split(feature_data,label_data,test_size=0.4)
     else:
         return feature_data, label_data
-
 
 def read_data(data_file,split):
     # data = pd.read_csv(data_file, sep=',',usecols=['cpu_max', 'cpu_min',       #创建空dataframe 存放merge之后的数据
@@ -515,16 +497,39 @@ def plot_confusion_matrix(confusion_mat):
     plt.xlabel('Predicted label')
     plt.show()
 
+def get_time_series_data(ts_result_file):
+    data = pd.read_csv(ts_result_file, sep=',', dtype=str)
+    col_list = [
+                'cpu_avg',
+                'cpu_max',
+                'cpu_min',
+                'mem_avg',
+                'mem_max',
+                'mem_min',
+                'cpu_avg_1',
+                'cpu_max_1',
+                'cpu_min_1',
+                'mem_avg_1',
+                'mem_max_1',
+                'mem_min_1',
+                'cpu_avg_2',
+                'cpu_max_2',
+                'cpu_min_2',
+                'mem_avg_2',
+                'mem_max_2',
+                'mem_min_2']
 
-def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,result_file):
+    host_d = data['hostname']
+    ts_d = data[col_list]
+    ts_d = ts_d.convert_objects(convert_numeric=True)
+    return host_d,ts_d
+
+def classifiers_for_prediction(data_file,model_save_file,result_file):
     model_save = {}
     test_classifiers_list = [ 'RF',
                              'GBDT',
                                'KNN',
-                            # #  'LR',
-                            #,
                                'DT']
-                             # 'XGB']
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,
                    'LR': logistic_regression_classifier,
@@ -536,12 +541,10 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                    # 'XGB':xgboost_classifier
                    }
 
-    result_list = []
-    # ignored_list = []
+
     all_data =  pd.read_csv(data_file, sep=',', dtype=str)
     for alertgroup,group in all_data.groupby('alertgroup'):
         if alertgroup != 'Net':
-        # if alertgroup == 'Ora' :
             print(alertgroup)
             # print(group['event'].value_counts())
             print('reading training and testing data...')
@@ -553,6 +556,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
             # train_x = pd.DataFrame(X_resampled.tolist())
             # train_y = pd.DataFrame(y_resampled)
             # train_x, test_x, train_y, test_y = read_data(data_file,split=True)
+            all_df = pd.DataFrame(columns=['classifier','hostname', 'predict_event'])
 
             for classifier in test_classifiers_list:
                 print('******************* %s ********************' % classifier)
@@ -565,7 +569,7 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
                 # predict_proba = model.predict(test_x)
                 # predict_proba = model.predict_proba(test_x)[:,1]
                 if model_save_file != None:
-                    model_save[classifier] = model
+                    model_save[alertgroup][classifier] = model
 
 
                 #画图
@@ -581,31 +585,50 @@ def classifiers_for_prediction(data_file, model_save_file,predict_proba_file,res
 
 #评价指标
 #000000
-
-                print(len([v1 for (v1,v2) in zip(test_y,predict) if v1 != v2]))
-
-                precision = metrics.precision_score(test_y, predict)
-                recall = metrics.recall_score(test_y, predict)
-                fbetascore = fbeta_score(test_y, predict, 0.5)
-                accuracy = metrics.accuracy_score(test_y, predict)
-                model_score = model.score(test_x, test_y)
-                print('precision: %.6f' % (100 *precision))
-                print('recall: %.6f' % (100 * recall))
-                print('f0.5score: %.6f' % (100 * fbetascore))
-                print('model score: %.6f' % (100*model_score))
-                print('accuracy: %.6f%%' % (100 * accuracy))
+                #
+                # print(len([v1 for (v1,v2) in zip(test_y,predict) if v1 != v2]))
+                #
+                # precision = metrics.precision_score(test_y, predict)
+                # recall = metrics.recall_score(test_y, predict)
+                # fbetascore = fbeta_score(test_y, predict, 0.5)
+                # accuracy = metrics.accuracy_score(test_y, predict)
+                # model_score = model.score(test_x, test_y)
+                # print('precision: %.6f' % (100 *precision))
+                # print('recall: %.6f' % (100 * recall))
+                # print('f0.5score: %.6f' % (100 * fbetascore))
+                # print('model score: %.6f' % (100*model_score))
+                # print('accuracy: %.6f%%' % (100 * accuracy))
 
                 # alertgroup_list.append(alertgroup)
                 # classifier_list.append(classifier)
                 # precision_list.append(precision)
                 # recall_list.append(recall)
-                result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
+                # result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
 
             if model_save_file != None:
                 pickle.dump(model_save, open(model_save_file, 'wb'))
 
-    result_df = pd.DataFrame(result_list,
-                             columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
-    print(result_df)
-    result_df.to_csv(result_file,sep=',',index=False)
+            all_df.to_csv(result_file,sep=',',index=False)
+    # result_df = pd.DataFrame(result_list,
+    #                          columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
+    # print(result_df)
+    # result_df.to_csv(result_file,sep=',',index=False)
 
+def test_classifier_for_prediction(data_file,alertgroup_name,classifier):
+    classifiers = {'NB': naive_bayes_classifier,
+                   'KNN': knn_classifier,
+                   'LR': logistic_regression_classifier,
+                   'RF': random_forest_classifier,
+                   'DT': decision_tree_classifier,
+                   'SVM': svm_classifier,
+                   'SVMCV': svm_cross_validation,
+                   'GBDT': gradient_boosting_classifier
+                   # 'XGB':xgboost_classifier
+                   }
+    all_data = pd.read_csv(data_file, sep=',', dtype=str)
+    for alertgroup, group in all_data.groupby('alertgroup'):
+        if alertgroup == alertgroup_name:
+            train_x, test_x, train_y, test_y = get_data(group, split=True)
+            model = classifiers[classifier](train_x, train_y)
+
+    return model

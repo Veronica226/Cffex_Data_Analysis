@@ -82,11 +82,12 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
+        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
         # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
         # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
         # data_preprocessing.fix_inf(new_merged_alertgroup_file)
 
+        data_preprocessing.delete_disk_files(output_cffex_info_dir,cpu_mem_info_dir)
 
 
 #调用特征提取的函数
@@ -150,13 +151,15 @@ def call_feature_extraction_func(flag=False):
         #获取按主机的时间序列分解的数据
         #data_preprocessing.generate_kpi_data_decomposition(merged_data_file, host_data_dir)
 
+
+
 #调用分类器预测模型的函数
 def call_predict_model_func(flag=False):
     if(flag):
         predict_proba_file = os.path.join(predict_data_dir,"predict_proba.csv")
         history_predict_proba_file = os.path.join(predict_data_dir,"history_predict_proba.csv")
         merged_data_file = os.path.join(predict_data_dir,"merged_data.csv")
-        model_save_file = os.path.join(predict_data_dir,"model_save.csv")
+        model_save_file = os.path.join(output_dir, 'classifier_model.csv')
         merged_history_file = os.path.join(predict_data_dir, "merged_history_data.csv")
         merged_fixed_file = os.path.join(predict_data_dir, "merged_fixed_data.csv")
         no_cpu_file = os.path.join(predict_data_dir, "no_cpu_data.csv")
@@ -173,6 +176,8 @@ def call_predict_model_func(flag=False):
         new_result_file = os.path.join(new_predict_data_dir, "new_result_data.csv")
         smote_result_file = os.path.join(new_predict_data_dir, "smote_result_data.csv")
         traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
+        ts_result_file = 'output_data\\TS_predict_result.csv'
+        p_result_file = 'output_data\\all_predict_result.csv'
         # #包含若干分类器的预测模型
         # print('no cpu')
         # predict_model.classifiers_for_prediction(no_cpu_file, model_save_file,history_predict_proba_file)
@@ -186,7 +191,7 @@ def call_predict_model_func(flag=False):
         # predict_model.classifiers_for_prediction(disk_only_file, model_save_file,history_predict_proba_file)
         # print('only mem')
         # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
-        predict_model.classifiers_for_prediction(traing_data_file, model_save_file, history_predict_proba_file,new_result_file)
+        predict_model.classifiers_for_prediction(traing_data_file, model_save_file, history_predict_proba_file,p_result_file,ts_result_file)
 
 
 def call_level_division_func(flag=False):

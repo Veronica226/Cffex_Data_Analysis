@@ -36,7 +36,7 @@ def predict(host, cpu_data, mem_data, result_length=30, model='baseline', MA_win
 	columns_cpu = ['cpu_avg','cpu_max','cpu_min','cpu_avg_1','cpu_max_1','cpu_min_1','cpu_avg_2','cpu_max_2','cpu_min_2']
 	columns_mem = ['mem_avg','mem_max','mem_min','mem_avg_1','mem_max_1','mem_min_1','mem_avg_2','mem_max_2','mem_min_2']
 	result = pd.DataFrame()
-	result = result.append({'host':host},ignore_index = True)
+	result = result.append({'hostname':host},ignore_index = True)
 
 	columns_indices = 0
 	for j in feature:
@@ -167,9 +167,9 @@ def predict(host, cpu_data, mem_data, result_length=30, model='baseline', MA_win
 				yhat = inverse_difference(raw_values, yhat, len(test_scaled)+1-i)
 				# 存储预测值
 				predictions.append(yhat)
-		result[columns_cpu[columns_indices]] = predictions[-1:]
-		result[columns_cpu[columns_indices+3]] = timeseries.iloc[[len(timeseries)-1]][0]
-		result[columns_cpu[columns_indices+6]] = timeseries.iloc[[len(timeseries)-2]][0]
+		result[columns_mem[columns_indices]] = predictions[-1:]
+		result[columns_mem[columns_indices+3]] = timeseries.iloc[[len(timeseries)-1]][0]
+		result[columns_mem[columns_indices+6]] = timeseries.iloc[[len(timeseries)-2]][0]
 		columns_indices = columns_indices + 1
 	return result
 	

@@ -8,6 +8,7 @@ pre_data_dir = os.path.join(base_dir, "raw_data", "pre_data")
 
 output_dir = os.path.join(base_dir,"output_data")
 output_cffex_info_dir= os.path.join(output_dir, "cffex-host-info")
+cpu_mem_info_dir = os.path.join(output_dir, "cffex-host-info-cpu-mem")
 plot_data_dir = os.path.join(output_dir,"plot-data")
 new_plot_data_dir = os.path.join(output_dir,"new-plot-data")
 plot_data_1_dir = os.path.join(output_dir,"plot-data-1")
