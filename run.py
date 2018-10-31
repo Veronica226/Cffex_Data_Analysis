@@ -227,6 +227,9 @@ def call_anomaly_detection_func(flag=False):
         anomaly_detection.calc_host_ave_model_evaluation_score(host_data_dir)
         return
 
+def alarm_prediction_model():
+    pass
+
 if __name__ == '__main__':
     call_data_preprocessing_func()
     call_feature_extraction_func()

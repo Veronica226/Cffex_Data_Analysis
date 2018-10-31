@@ -21,6 +21,9 @@ from sklearn import svm
 from sklearn import neighbors
 
 # 单独调用样例
+from settings import output_dir
+
+
 def run_tests():
 	csv_dir = r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info-cpu-mem'
 	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
@@ -94,8 +97,8 @@ def run_tests():
 # 预测调用函数样例
 def run_test_predict():
 	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
-	cpu_data = pd.read_csv(r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info\2018_vcsdb1_hourly_cpu.csv',encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
-	mem_data = pd.read_csv(r'E:\HomeMadeSoftware\Cffex_Data_Analysis\output_data\cffex-host-info\2018_vcsdb1_hourly_mem.csv',encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
+	cpu_data = pd.read_csv(os.path.join(output_dir,'cffex-host-info','2018_vcsdb1_hourly_cpu.csv'),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
+	mem_data = pd.read_csv(os.path.join(output_dir,'cffex-host-info','2018_vcsdb1_hourly_mem.csv'),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
 	
 	# 可选预测模型
 	predict_model = [

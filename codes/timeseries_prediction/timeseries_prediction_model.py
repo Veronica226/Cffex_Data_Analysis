@@ -1,9 +1,12 @@
-import os
+import os,numpy
 import pandas as pd
 import numpy as np
 import matplotlib.pylab as plt
+from keras import Sequential
+from keras.layers import LSTM, Dense
 from matplotlib.pylab import rcParams
-from statsmodels.tsa.stattools import adfuller
+from sklearn.preprocessing import MinMaxScaler
+# from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import acf,pacf
 from statsmodels.tsa.arima_model import ARIMA
@@ -52,7 +55,7 @@ def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12
 			except:
 				print('data can not be stationary')
 		elif model == 'RFR':
-			predict_TS = random_forest_regressor_model(timeseries, result_length, tree_num)
+			predict_TS = random_forest_regressor_model(timeseries, result_length, RFR_tree_num)
 			predictions = predict_TS.tolist()
 		elif model == 'SVR':
 			predict_TS = surpport_vector_regressor_model(timeseries, result_length)
@@ -117,7 +120,7 @@ def predict(cpu_data, mem_data, result_length=30, model='baseline', MA_window=12
 			except:
 				print('data can not be stationary')
 		elif model == 'RFR':
-			predict_TS = random_forest_regressor_model(timeseries, result_length, tree_num)
+			predict_TS = random_forest_regressor_model(timeseries, result_length, RFR_tree_num)
 			predictions = predict_TS.tolist()
 		elif model == 'SVR':
 			predict_TS = surpport_vector_regressor_model(timeseries, result_length)
