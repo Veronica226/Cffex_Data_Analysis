@@ -11,6 +11,8 @@ from scipy import stats
 from sklearn import metrics
 import os
 
+
+#告警类别判定模型
 def create_kNN_model(data_dir):
     column_list = ['cpu_max', 'cpu_min', 'mem_max', 'mem_min', 'cpu_max_1', 'cpu_min_1', 'mem_max_1', 'mem_min_1',
         'cpu_max_2', 'cpu_min_2', 'mem_max_2', 'mem_min_2', 'event', 'alertgroup']
@@ -139,6 +141,7 @@ def predict():
         'cpu_avg_2', 'cpu_max_2', 'cpu_min_2', 'mem_avg_2', 'mem_max_2', 'mem_min_2']
     return
 
+#训练每个业务的模型并返回
 def test_KNN_model(data_dir):
 
     column_list = ['cpu_max', 'cpu_min', 'mem_max', 'mem_min', 'cpu_max_1', 'cpu_min_1', 'mem_max_1', 'mem_min_1',

@@ -350,6 +350,7 @@ def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_al
     print(data1[data1['node_alias'] == -1].shape)
     data = data1[data1['node_alias'] != -1]
     data.to_csv(fixed_alarm_data_file, sep=',', index=False)
+
 #根据alarm content内的主机对告警事件内容进行分组，并检查ping事件是否与主机异常相关联
 #input：fixed_alarm_processed_file
 #output：final_alarm_data_file
@@ -389,7 +390,6 @@ def check_ping_alarm_data(fixed_alarm_data_file, final_alarm_data_file):
     print(data)
     data.to_csv(final_alarm_data_file, sep=',', index=False)
 
-
 #（3）提取告警数据的主机、时间、主机告警次数、告警级别、告警内容等信息。
 #input：final_alarm_data_file
 #output:new_alarm_out_file
@@ -407,67 +407,9 @@ def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
     print (data)
     data.to_csv(alarm_out_file, sep=',', index=False)
 
-
-
-
-
-
-
-
-
-
-
-
-#添加主机对应的业务类别，即alertgroup
-def get_alertgroup_by_hostname(alertgroup_file, merged_data_file):
-    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
-    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
-    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
-    df.drop_duplicates(inplace=True)
-    print(df)  #hostname 和 alertgroup的对应表
-    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
-                         right_index=False)
-    print(merged_df)
-    merged_df.to_csv(merged_data_file,sep=',',index=False)
-
-def calculate_delta_time(merged_alertgroup_file):
-    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
-    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
-    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
-    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
-    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
-    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
-    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
-    data.to_csv(merged_alertgroup_file,sep=',',index=False)
-
-def calculate_avg_and_alarmcount(merged_alertgroup_file):
-    data = pd.read_csv(merged_alertgroup_file,sep=',',dtype=str)
-    print(data)
-    for hostname,group in data.groupby('hostname'):
-        alarmcount_list = group['alarm_count'].map(float).values
-        print(sum(alarmcount_list))
-        # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
-        index_list = data[data.hostname == hostname].index.tolist()
-        print(index_list)
-        data.ix[index_list,'alarm_count'] =data.ix[index_list,'alarm_count'].apply(lambda x:sum(alarmcount_list))
-        print(data[data['hostname']==hostname]['alarm_count'])
-
-
-
-    data['cpu_amm'] = (data['cpu_avg'].map(float)/((data['cpu_max'].map(float)-data['cpu_min'].map(float))/2)).map(str)
-    data['mem_amm'] = (data['mem_avg'].map(float)/((data['mem_max'].map(float)-data['mem_min'].map(float))/2)).map(str)
-    data['cpu_amm_1'] = (data['cpu_avg_1'].map(float)/((data['cpu_max_1'].map(float)-data['cpu_min_1'].map(float))/2)).map(str)
-    data['mem_amm_1'] = (data['mem_avg_1'].map(float)/((data['mem_max_1'].map(float)-data['mem_min_1'].map(float))/2)).map(str)
-    data['cpu_amm_2'] = (data['cpu_avg_2'].map(float)/((data['cpu_max_2'].map(float)-data['cpu_min_2'].map(float))/2)).map(str)
-    data['mem_amm_2'] = (data['mem_avg_2'].map(float)/((data['mem_max_2'].map(float)-data['mem_min_2'].map(float))/2)).map(str)
-    print(data)
-    print(data['alarm_count'])
-    data.replace(np.inf, np.nan)
-    data.fillna(0)
-    data.to_csv(merged_alertgroup_file,sep=',',index=False)
-
-#删除磁盘文件
-#input：
+#（4）删除文件夹中的磁盘文件，因为训练数据只用到了cpu和mem数据
+#input：output_cffex_info_dir
+#output：cpu_mem_info_dir
 def delete_disk_files(info_file_dir,out_file_dir):
     if not os.path.exists(out_file_dir):
         os.makedirs(out_file_dir)
@@ -568,10 +510,53 @@ def generate_subplot_data(predict_data, subplot_data_dir):
         subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
         group.drop(['hostname'], axis=1, inplace=True)
         group.to_csv(subplot_data_file, sep=',', index=False, header=False)
+
+# 计算平均值和告警总次数
+def calculate_avg_and_alarmcount(merged_alertgroup_file):
+        data = pd.read_csv(merged_alertgroup_file, sep=',', dtype=str)
+        print(data)
+        for hostname, group in data.groupby('hostname'):
+            alarmcount_list = group['alarm_count'].map(float).values
+            print(sum(alarmcount_list))
+            # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
+            index_list = data[data.hostname == hostname].index.tolist()
+            print(index_list)
+            data.ix[index_list, 'alarm_count'] = data.ix[index_list, 'alarm_count'].apply(
+                lambda x: sum(alarmcount_list))
+            print(data[data['hostname'] == hostname]['alarm_count'])
+
+        data['cpu_amm'] = (
+        data['cpu_avg'].map(float) / ((data['cpu_max'].map(float) - data['cpu_min'].map(float)) / 2)).map(str)
+        data['mem_amm'] = (
+        data['mem_avg'].map(float) / ((data['mem_max'].map(float) - data['mem_min'].map(float)) / 2)).map(str)
+        data['cpu_amm_1'] = (
+        data['cpu_avg_1'].map(float) / ((data['cpu_max_1'].map(float) - data['cpu_min_1'].map(float)) / 2)).map(str)
+        data['mem_amm_1'] = (
+        data['mem_avg_1'].map(float) / ((data['mem_max_1'].map(float) - data['mem_min_1'].map(float)) / 2)).map(str)
+        data['cpu_amm_2'] = (
+        data['cpu_avg_2'].map(float) / ((data['cpu_max_2'].map(float) - data['cpu_min_2'].map(float)) / 2)).map(str)
+        data['mem_amm_2'] = (
+        data['mem_avg_2'].map(float) / ((data['mem_max_2'].map(float) - data['mem_min_2'].map(float)) / 2)).map(str)
+        print(data)
+        print(data['alarm_count'])
+        data.replace(np.inf, np.nan)
+        data.fillna(0)
+        data.to_csv(merged_alertgroup_file, sep=',', index=False)
+
+#计算kpi数据中最大值发生时间与最小值发生时间的时间差
+def calculate_delta_time(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
+    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
+    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
+    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
+    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
+    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
+    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
 ######################################################################################
-
-
 ###jhljx
+#生成告警事件数据中，每个level的告警信息
 def genereate_host_event_sets(host_alarm_file_path, output_dir):
     df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
     print('shape = ', df_alarm.shape)
@@ -588,6 +573,7 @@ def genereate_host_event_sets(host_alarm_file_path, output_dir):
         output_file_path = os.path.join(output_host_dir, host_name + '_events.csv')
         df_host_alarm.to_csv(output_file_path, sep=',', index=False)
 
+#生成每个level的告警事件的content
 def generate_alarm_level_content(host_alarm_file_path, output_dir):
     df_alarm = pd.read_csv(host_alarm_file_path, sep=',', dtype=str, encoding='GBK')
     df_alarm = df_alarm[['alarm_level', 'alarm_content']]
@@ -595,7 +581,6 @@ def generate_alarm_level_content(host_alarm_file_path, output_dir):
         df_alarm_level = df_alarm_level.drop_duplicates()
         output_file_path = os.path.join(output_dir, alarm_level + '_events.csv')
         df_alarm_level.to_csv(output_file_path, sep=',', index=False)
-
 
 #获取kpi_data的时间序列分解数据，便于按照每个主机来建立相应的异常检测模型
 def generate_kpi_data_decomposition(input_file_path, output_dir):

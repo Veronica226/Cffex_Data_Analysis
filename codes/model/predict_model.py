@@ -30,7 +30,7 @@ import pandas as pd
 ######################################################################################
 #Author: 王靖文
 
-
+#几种分类器模型
 # Multinomial Naive Bayes Classifier
 def naive_bayes_classifier(train_x, train_y):
     model = MultinomialNB(alpha=0.01)
@@ -309,6 +309,7 @@ def svm_cross_validation(train_x, train_y):
     model.fit(train_x, train_y)
     return model
 
+#从文件中读取并返回模型所用的数据
 def get_data(data_df,split):
     # 创建空dataframe 存放merge之后的数据
     col_list = [
@@ -405,6 +406,8 @@ def read_data(data_file,split):
     else:
         return feature_data, label_data
 
+
+#画图
 def generate_ROC_plot(test_y, predict,classifier_name):
     if not os.path.exists(history_metric_figures_dir):
         os.makedirs(history_metric_figures_dir)
@@ -524,6 +527,8 @@ def get_time_series_data(ts_result_file):
     ts_d = ts_d.convert_objects(convert_numeric=True)
     return host_d,ts_d
 
+
+#训练分类模型
 def classifiers_for_prediction(data_file,model_save_file,result_file):
     model_save = {}
     test_classifiers_list = [ 'RF',
@@ -614,6 +619,8 @@ def classifiers_for_prediction(data_file,model_save_file,result_file):
     # print(result_df)
     # result_df.to_csv(result_file,sep=',',index=False)
 
+
+#根据业务返回已经训练好的具体分类器模型
 def test_classifier_for_prediction(data_file,alertgroup_name,classifier):
     classifiers = {'NB': naive_bayes_classifier,
                    'KNN': knn_classifier,

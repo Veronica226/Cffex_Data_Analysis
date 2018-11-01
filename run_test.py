@@ -92,7 +92,7 @@ def run_test_predict(out_file_name):
 	# predict_result = timeseries_prediction_model.predict('2018_vcsdb1_hourly',cpu_data, mem_data, result_length=50, model='SVR')
 	predict_result.to_csv(out_file_name, index = 0, encoding = 'UTF-8')
 
-# 单独调用样例
+# 分类调用函数样例
 def test_classifier_model(out_file_name,predict_result_file):
 	traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
 	alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
@@ -146,6 +146,7 @@ def test_classifier_model(out_file_name,predict_result_file):
 
 		all_df.to_csv(predict_result_file,sep=',',index=False)
 
+#告警级别判定调用函数样例
 def test_kpi_level_model(predict_result_file,final_result_file):
 	df = pd.read_csv(predict_result_file, sep=',',dtype=str)
 	df = df[df['predict_event']=='1']
