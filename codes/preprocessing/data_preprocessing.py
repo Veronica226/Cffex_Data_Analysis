@@ -11,15 +11,12 @@ import shutil
 common_disk_list = ['boot', 'rt', 'home', 'monitor', 'tmp']  #通过generate_plot_data得到所有主机公共的磁盘目录
 ######################################################################################
 #Author: 王靖文
+###################################################################
+#1. kpi数据处理流程
 
-#日期转换
-def trans_date(date_str):
-    return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:8] + ' ' + date_str[8:] + ':00:00'
-
-def trans_alarm_date(date_str):
-    return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:11] + ':00:00'
-
-#最开始要处理的程序，把raw_data里指标数据的log文件转成csv文件
+#（1）最开始要处理的程序，处理原始数据，把raw_data里指标数据的log文件转成csv文件
+#input：origin_data_dir
+#out_put: output_cffex_info_dir  存放每个主机的cpu、disk、mem的kpi指标数据文件
 def process_raw_data(origin_dir, output_dir):
 
     f_list = os.listdir(origin_dir)
@@ -48,12 +45,14 @@ def process_raw_data(origin_dir, output_dir):
                 df = pd.DataFrame(data_list)
                 #print(df.shape)
                 df.to_csv(file_name,sep=',',index=False)
-            num += 1
+            # num += 1
             # if(num > 1):
             #     break
     print('process raw data finished!')
 
-#只获取时间、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
+#（2）提取每个设备（cpu、内存、各个磁盘）的只时间、平均值、最大值、最小值特征，一方面为了画图使用，另一方面为了后续合成特征
+#input：output_cffex_info_dir
+#output：# new_plot_data_dir
 def generate_plot_data(origin_dir, output_dir):
     #如果output_dir没有创建，则需要先创建该文件夹
     if not os.path.exists(output_dir):
@@ -88,7 +87,9 @@ def generate_plot_data(origin_dir, output_dir):
             data.to_csv(output_file, sep=',', index=False, header=False)
     print('generate plot data finished!')
 
-#对数据缺失的文件进行插值处理，取平均
+#（3）部分文件缺少23：00数据，对数据缺失的文件进行插值处理
+#put：new_plot_data_dir
+#output：new_plot_data_dir
 def insert_missing_data(origin_dir, output_dir):
      f_list = os.listdir(origin_dir)
      if(not os.path.exists(output_dir)):
@@ -210,225 +211,13 @@ def insert_missing_data(origin_dir, output_dir):
                       # , float_format='%.1f')
 
 
-#检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
-def check_completeness(origin_dir):
-    f_list = os.listdir(origin_dir)
-    for file_name in f_list:
-        with open(origin_dir + "/" + file_name, "r") as fp1:  # 通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
-            data = pd.read_csv(fp1, sep=',', dtype=str, header=None, index_col=None)  # header=None设置列名为空，自动用0开头的数字替代
-            row_num = data.shape[0]
-            if row_num % 24 != 0:
-                print (file_name)
-                print(row_num)
+###########################################################################
+#2. 告警数据处理流程
 
-def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
-    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
-    node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
-    # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
-    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
-                       usecols=['node_alias','alarm_count','last_time', 'alarm_level'])
-    data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
-    data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
-    data['alarm_level'] = '1'    #将事件级别全部赋值为1
-    data.columns = ['hostname','alarm_count', 'archour','event']
-    # data.columns = ['hostname', 'category', 'archour', 'event', 'content']
-    print (data)
-    data.to_csv(alarm_out_file, sep=',', index=False)
-
-
-def find_node_alias_value(node_key,node_dict): #在node_dict中 找到id对应node_alias 也就是主机名
-    node_value = node_dict[node_key]
-    return node_value.lower()        #全部转换为小写
-
-#获得matlab需要画图用的数据
-def generate_subplot_data(predict_data, subplot_data_dir):
-    if not os.path.exists(subplot_data_dir):
-        os.makedirs(subplot_data_dir)
-    data = pd.read_csv(predict_data, sep=',',dtype=str)
-    for hostname,group in data.groupby('hostname'):
-        subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
-        group.drop(['hostname'], axis=1, inplace=True)
-        group.to_csv(subplot_data_file, sep=',', index=False, header=False)
-
-#简单方法：告警事件文件中直接剔除ping告警数据
-def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
-    data = pd.read_csv(alarm_data_file, sep=',', dtype=str)
-    data1 = data[data['alarm_content'] != '36']
-    print(data1)
-    data2 = data1[data1['alarm_content'] != '37']
-    data3 = data2[data2['alarm_content'] != '38']
-    data3.to_csv(deleted_alarm_data_file, sep=',', index=False)
-
-def get_node_name_id(alarm_content, node_alias_file):
-    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
-    node_dict = dict(zip(df_node_alias['node_alias'],df_node_alias['id']))
-    node_name_list = df_node_alias['node_alias'].values.tolist()  #获取主机名list 都是大写的
-    ping_node_name_id = -1
-    for node_name in node_name_list:
-        if node_name.lower() in alarm_content:
-            print("node_name:"+ node_name.lower())
-            ping_node_name_id = node_dict[node_name]
-            print ("fixed node_name id:"+ ping_node_name_id)
-            break
-
-    return ping_node_name_id
-
-def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_alarm_data_file):
-    data1 = pd.read_csv(alarm_data_file, sep=',', dtype=str)
-    data2 = pd.read_csv(raw_alarm_data_file, encoding= 'gbk',sep=',', dtype=str)
-    index_list = data1[data1['alarm_content'] == '36'].index.tolist()
-    index_list2 = data1[data1['alarm_content'] == '37'].index.tolist()
-    index_list3 = data1[data1['alarm_content'] == '38'].index.tolist()
-    index_list.extend(index_list2)
-    index_list.extend(index_list3)
-    index_list.sort()
-    print(index_list)   #list为平告警事件的索引值列表
-
-    #对所有ping事件的index进行修改
-    for i in index_list:
-        alarm_content = data2.iloc[i,8]
-        print("index:"+str(i)+":"+alarm_content)
-        ping_node_name_id = get_node_name_id(alarm_content,node_alias_file)
-        # print(ping_node_name_id)#获取ping所对应的主机名
-        data1.iloc[i,1]= ping_node_name_id   #修改ping对应的正确主机名的i的编号（对应dict
-
-
-    print(data1)
-    print(data1[data1['node_alias'] == -1].shape)
-    data = data1[data1['node_alias'] != -1]
-    data.to_csv(fixed_alarm_data_file, sep=',', index=False)
-
-#根据alarm content内的主机对告警事件内容进行分组，并检查ping事件是否与主机异常相关联
-def check_ping_alarm_data(fixed_alarm_data_file, final_alarm_data_file):
-    data = pd.read_csv(fixed_alarm_data_file, sep=',', dtype=str)
-    drop_index_list = []  #存储要删除的indexlist
-    for node_alias,group in data.groupby('node_alias'):   #每个主机的dataFrame
-        print('node_alias:'+str(node_alias))
-        print(group)
-        index_list = group.index.tolist()
-        print('index_list:')
-        print(index_list)
-
-        group1 = group[group['alarm_content'] != '36']
-        group2 = group1[group1['alarm_content'] != '37']
-        group3 = group2[group2['alarm_content'] != '38']
-        time_list = group3['last_time'].tolist()
-        print('other time list:')
-        print(time_list)   #获取非ping告警的时间list
-
-        cnt = 0
-        for i in index_list:     #遍历index
-            alarm_content=group.iloc[cnt,8]
-            if (alarm_content == '36') or (alarm_content == '37') or (alarm_content == '38'):  #判断是否是ping告警事件
-                time = group.iloc[cnt,6]    #获取时间
-                flag = find_close_alarm(time_list,time) #寻找是否是主机异常引起的ping事件
-                print(flag)
-                if flag == 0:      #如果没找到 则为网络异常引起的ping
-                    drop_index_list.append(i)    #将此条ping事件的index添加到要删除的indexlist中
-                    print('delete index: '+str(i))
-            cnt = cnt+1
-
-    print('drop_index_list:')
-    print(drop_index_list)
-    print(len(drop_index_list))
-    data.drop(drop_index_list,inplace=True)   #删除要删掉的index数据
-    print(data)
-    data.to_csv(final_alarm_data_file, sep=',', index=False)
-
-#查找三十分钟内是否有主机告警
-def find_close_alarm(time_list,time):
-    new_time_list = map(lambda x: datetime.strptime(x, '%Y%m%d %H:%M:%S'), time_list)
-    new_time  = datetime.strptime(time,  '%Y%m%d %H:%M:%S')
-    flag = 0
-    for i in new_time_list:
-        if new_time > i:
-            time_delta = (new_time - i).seconds #计算时间差
-        else:
-            time_delta = (i - new_time).seconds
-        if  time_delta < 1800:   #30分钟之内
-            flag = 1
-        break
-    return  flag
-
-#查看主机对应的业务类别，即alertgroup
-def get_alertgroup_by_hostname(alertgroup_file, merged_data_file):
-    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
-    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
-    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
-    df.drop_duplicates(inplace=True)
-    print(df)  #hostname 和 alertgroup的对应表
-    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
-                         right_index=False)
-    print(merged_df)
-    merged_df.to_csv(merged_data_file,sep=',',index=False)
-
-def calculate_delta_time(merged_alertgroup_file):
-    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
-    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
-    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
-    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
-    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
-    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
-    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
-    data.to_csv(merged_alertgroup_file,sep=',',index=False)
-
-
-def calculate_avg_and_alarmcount(merged_alertgroup_file):
-    data = pd.read_csv(merged_alertgroup_file,sep=',',dtype=str)
-    print(data)
-    for hostname,group in data.groupby('hostname'):
-        alarmcount_list = group['alarm_count'].map(float).values
-        print(sum(alarmcount_list))
-        # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
-        index_list = data[data.hostname == hostname].index.tolist()
-        print(index_list)
-        data.ix[index_list,'alarm_count'] =data.ix[index_list,'alarm_count'].apply(lambda x:sum(alarmcount_list))
-        print(data[data['hostname']==hostname]['alarm_count'])
-
-
-
-    data['cpu_amm'] = (data['cpu_avg'].map(float)/((data['cpu_max'].map(float)-data['cpu_min'].map(float))/2)).map(str)
-    data['mem_amm'] = (data['mem_avg'].map(float)/((data['mem_max'].map(float)-data['mem_min'].map(float))/2)).map(str)
-    data['cpu_amm_1'] = (data['cpu_avg_1'].map(float)/((data['cpu_max_1'].map(float)-data['cpu_min_1'].map(float))/2)).map(str)
-    data['mem_amm_1'] = (data['mem_avg_1'].map(float)/((data['mem_max_1'].map(float)-data['mem_min_1'].map(float))/2)).map(str)
-    data['cpu_amm_2'] = (data['cpu_avg_2'].map(float)/((data['cpu_max_2'].map(float)-data['cpu_min_2'].map(float))/2)).map(str)
-    data['mem_amm_2'] = (data['mem_avg_2'].map(float)/((data['mem_max_2'].map(float)-data['mem_min_2'].map(float))/2)).map(str)
-    print(data)
-    print(data['alarm_count'])
-    data.replace(np.inf, np.nan)
-    data.fillna(0)
-    data.to_csv(merged_alertgroup_file,sep=',',index=False)
-
-def fix_inf(new_merged_alertgroup_file):
-    data = pd.read_csv(new_merged_alertgroup_file,sep=',',dtype=str)
-    data[data==np.inf] = 0
-    print(data)
-
-def delete_disk_files(info_file_dir,out_file_dir):
-    if not os.path.exists(out_file_dir):
-        os.makedirs(out_file_dir)
-    f_list = os.listdir(info_file_dir)
-    for file in f_list:
-        file_name = os.path.splitext(file)[0]
-        if file_name.endswith('disk') == False:
-            shutil.copyfile(os.path.join(info_file_dir,file),os.path.join(out_file_dir,file))
-
-def get_host_name(file_name):
-    f_name = os.path.splitext(file_name)[0].split('_')
-    ele = ["cpu", "mem"]
-    host_name_list = []
-    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
-        if e in f_name:
-            h = f_name.index(e)
-    for a in range(0, h):
-        host_name_list.append(f_name[a])
-    host_name = '_'.join(host_name_list)
-    return host_name
-
-######################################################################################
+#（1）处理原始告警数据
 #Author: 普俊韬
-
-#START 'cffex-host-alarm.csv' process code
+#input：origin_alarm_data_dir
+#output：alarm_data_dir  存放各个告警数据文件
 def process_alarm_data(host_alarm_dir, output_dir):
 
     #Last update: 20180627
@@ -522,7 +311,264 @@ def process_alarm_data(host_alarm_dir, output_dir):
     #将处理后结果写入'cffex-host-alarm-processed.csv'（不带行标签，utf-8编码）
     data_processed.to_csv(host_alarm_processed_dir, index = False, encoding = 'utf-8')
     print('process alarm raw data finished!')
-#END 'cffex-host-alarm.csv' process code
+
+#(2)筛选告警数据信息（删除网络相关数据）
+#告警事件文件中直接剔除ping告警数据
+#input:alarm_processed_file
+#output:deleted_alarm_processed_file
+def delete_ping_data(alarm_data_file, deleted_alarm_data_file):
+    data = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data1 = data[data['alarm_content'] != '36']
+    print(data1)
+    data2 = data1[data1['alarm_content'] != '37']
+    data3 = data2[data2['alarm_content'] != '38']
+    data3.to_csv(deleted_alarm_data_file, sep=',', index=False)
+#修改ping主机对应的告警情况
+#input:alarm_processed_file
+#output:fixed_alarm_processed_file
+def fix_ping_data(alarm_data_file, raw_alarm_data_file,node_alias_file, fixed_alarm_data_file):
+    data1 = pd.read_csv(alarm_data_file, sep=',', dtype=str)
+    data2 = pd.read_csv(raw_alarm_data_file, encoding= 'gbk',sep=',', dtype=str)
+    index_list = data1[data1['alarm_content'] == '36'].index.tolist()
+    index_list2 = data1[data1['alarm_content'] == '37'].index.tolist()
+    index_list3 = data1[data1['alarm_content'] == '38'].index.tolist()
+    index_list.extend(index_list2)
+    index_list.extend(index_list3)
+    index_list.sort()
+    print(index_list)   #list为平告警事件的索引值列表
+
+    #对所有ping事件的index进行修改
+    for i in index_list:
+        alarm_content = data2.iloc[i,8]
+        print("index:"+str(i)+":"+alarm_content)
+        ping_node_name_id = get_node_name_id(alarm_content,node_alias_file)
+        # print(ping_node_name_id)#获取ping所对应的主机名
+        data1.iloc[i,1]= ping_node_name_id   #修改ping对应的正确主机名的i的编号（对应dict
+
+
+    print(data1)
+    print(data1[data1['node_alias'] == -1].shape)
+    data = data1[data1['node_alias'] != -1]
+    data.to_csv(fixed_alarm_data_file, sep=',', index=False)
+#根据alarm content内的主机对告警事件内容进行分组，并检查ping事件是否与主机异常相关联
+#input：fixed_alarm_processed_file
+#output：final_alarm_data_file
+def check_ping_alarm_data(fixed_alarm_data_file, final_alarm_data_file):
+    data = pd.read_csv(fixed_alarm_data_file, sep=',', dtype=str)
+    drop_index_list = []  #存储要删除的indexlist
+    for node_alias,group in data.groupby('node_alias'):   #每个主机的dataFrame
+        print('node_alias:'+str(node_alias))
+        print(group)
+        index_list = group.index.tolist()
+        print('index_list:')
+        print(index_list)
+
+        group1 = group[group['alarm_content'] != '36']
+        group2 = group1[group1['alarm_content'] != '37']
+        group3 = group2[group2['alarm_content'] != '38']
+        time_list = group3['last_time'].tolist()
+        print('other time list:')
+        print(time_list)   #获取非ping告警的时间list
+
+        cnt = 0
+        for i in index_list:     #遍历index
+            alarm_content=group.iloc[cnt,8]
+            if (alarm_content == '36') or (alarm_content == '37') or (alarm_content == '38'):  #判断是否是ping告警事件
+                time = group.iloc[cnt,6]    #获取时间
+                flag = find_close_alarm(time_list,time) #寻找是否是主机异常引起的ping事件
+                print(flag)
+                if flag == 0:      #如果没找到 则为网络异常引起的ping
+                    drop_index_list.append(i)    #将此条ping事件的index添加到要删除的indexlist中
+                    print('delete index: '+str(i))
+            cnt = cnt+1
+
+    print('drop_index_list:')
+    print(drop_index_list)
+    print(len(drop_index_list))
+    data.drop(drop_index_list,inplace=True)   #删除要删掉的index数据
+    print(data)
+    data.to_csv(final_alarm_data_file, sep=',', index=False)
+
+
+#（3）提取告警数据的主机、时间、主机告警次数、告警级别、告警内容等信息。
+#input：final_alarm_data_file
+#output:new_alarm_out_file
+def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
+    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
+    node_dict = dict(zip(df_node_alias['id'], df_node_alias['node_alias']))
+    # data = pd.read_csv(alarm_processed_file, sep=',', dtype=str, usecols=['node_alias','category','last_time','alarm_level','alarm_content'])  #提取告警事件文件内的主机、时间、事件级别
+    data = pd.read_csv(alarm_processed_file, sep=',', dtype=str,
+                       usecols=['node_alias','alarm_count','last_time', 'alarm_level'])
+    data['node_alias'] = data['node_alias'].apply(find_node_alias_value,node_dict = node_dict)  #node数字转成对应主机名称
+    data['last_time'] = data['last_time'].apply(trans_alarm_date)   #修改日期格式
+    data['alarm_level'] = '1'    #将事件级别全部赋值为1
+    data.columns = ['hostname','alarm_count', 'archour','event']
+    # data.columns = ['hostname', 'category', 'archour', 'event', 'content']
+    print (data)
+    data.to_csv(alarm_out_file, sep=',', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+#添加主机对应的业务类别，即alertgroup
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file):
+    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
+    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
+    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
+    df.drop_duplicates(inplace=True)
+    print(df)  #hostname 和 alertgroup的对应表
+    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
+                         right_index=False)
+    print(merged_df)
+    merged_df.to_csv(merged_data_file,sep=',',index=False)
+
+def calculate_delta_time(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file, sep=',',dtype =str)
+    data['cpu_dt'] =((data['cpu_maxt'].map(float) - data['cpu_mint'].map(float))/1000).map(str)
+    data['mem_dt'] = ((data['mem_maxt'].map(float) - data['mem_mint'].map(float))/1000).map(str)
+    data['cpu_dt_1'] =((data['cpu_maxt_1'].map(float) - data['cpu_mint_1'].map(float))/1000).map(str)
+    data['mem_dt_1'] = ((data['mem_maxt_1'].map(float) - data['mem_mint_1'].map(float))/1000).map(str)
+    data['cpu_dt_2'] =((data['cpu_maxt_2'].map(float)- data['cpu_mint_2'].map(float))/1000).map(str)
+    data['mem_dt_2'] = ((data['mem_maxt_2'].map(float) - data['mem_mint_2'].map(float))/1000).map(str)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+def calculate_avg_and_alarmcount(merged_alertgroup_file):
+    data = pd.read_csv(merged_alertgroup_file,sep=',',dtype=str)
+    print(data)
+    for hostname,group in data.groupby('hostname'):
+        alarmcount_list = group['alarm_count'].map(float).values
+        print(sum(alarmcount_list))
+        # data[data.hostname == hostname,'alarm_count'] = sum(alarmcount_list)
+        index_list = data[data.hostname == hostname].index.tolist()
+        print(index_list)
+        data.ix[index_list,'alarm_count'] =data.ix[index_list,'alarm_count'].apply(lambda x:sum(alarmcount_list))
+        print(data[data['hostname']==hostname]['alarm_count'])
+
+
+
+    data['cpu_amm'] = (data['cpu_avg'].map(float)/((data['cpu_max'].map(float)-data['cpu_min'].map(float))/2)).map(str)
+    data['mem_amm'] = (data['mem_avg'].map(float)/((data['mem_max'].map(float)-data['mem_min'].map(float))/2)).map(str)
+    data['cpu_amm_1'] = (data['cpu_avg_1'].map(float)/((data['cpu_max_1'].map(float)-data['cpu_min_1'].map(float))/2)).map(str)
+    data['mem_amm_1'] = (data['mem_avg_1'].map(float)/((data['mem_max_1'].map(float)-data['mem_min_1'].map(float))/2)).map(str)
+    data['cpu_amm_2'] = (data['cpu_avg_2'].map(float)/((data['cpu_max_2'].map(float)-data['cpu_min_2'].map(float))/2)).map(str)
+    data['mem_amm_2'] = (data['mem_avg_2'].map(float)/((data['mem_max_2'].map(float)-data['mem_min_2'].map(float))/2)).map(str)
+    print(data)
+    print(data['alarm_count'])
+    data.replace(np.inf, np.nan)
+    data.fillna(0)
+    data.to_csv(merged_alertgroup_file,sep=',',index=False)
+
+#删除磁盘文件
+#input：
+def delete_disk_files(info_file_dir,out_file_dir):
+    if not os.path.exists(out_file_dir):
+        os.makedirs(out_file_dir)
+    f_list = os.listdir(info_file_dir)
+    for file in f_list:
+        file_name = os.path.splitext(file)[0]
+        if file_name.endswith('disk') == False:
+            shutil.copyfile(os.path.join(info_file_dir,file),os.path.join(out_file_dir,file))
+
+#######################################################
+#辅助函数
+#日期格式转换
+def trans_date(date_str):
+    return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:8] + ' ' + date_str[8:] + ':00:00'
+def trans_alarm_date(date_str):
+    return date_str[:4] + '-' + date_str[4:6] + '-' + date_str[6:11] + ':00:00'
+
+#检查所有文件是否数据完整  使用shape[0]是否能对24整除判断
+def check_completeness(origin_dir):
+    f_list = os.listdir(origin_dir)
+    for file_name in f_list:
+        with open(origin_dir + "/" + file_name, "r") as fp1:  # 通过时间字段 对hostname的不同部件的max min值merge到同一个dataframe中
+            data = pd.read_csv(fp1, sep=',', dtype=str, header=None, index_col=None)  # header=None设置列名为空，自动用0开头的数字替代
+            row_num = data.shape[0]
+            if row_num % 24 != 0:
+                print (file_name)
+                print(row_num)
+
+#查找三十分钟内是否有主机告警
+def find_close_alarm(time_list,time):
+    new_time_list = map(lambda x: datetime.strptime(x, '%Y%m%d %H:%M:%S'), time_list)
+    new_time  = datetime.strptime(time,  '%Y%m%d %H:%M:%S')
+    flag = 0
+    for i in new_time_list:
+        if new_time > i:
+            time_delta = (new_time - i).seconds #计算时间差
+        else:
+            time_delta = (i - new_time).seconds
+        if  time_delta < 1800:   #30分钟之内
+            flag = 1
+        break
+    return  flag
+
+#提取文件名中的主机名
+def get_host_name(file_name):
+    f_name = os.path.splitext(file_name)[0].split('_')
+    ele = ["cpu", "mem"]
+    host_name_list = []
+    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
+        if e in f_name:
+            h = f_name.index(e)
+    for a in range(0, h):
+        host_name_list.append(f_name[a])
+    host_name = '_'.join(host_name_list)
+    return host_name
+
+#获取主机名对应的id
+def get_node_name_id(alarm_content, node_alias_file):
+    df_node_alias = pd.read_csv(node_alias_file, sep=',', dtype=str)
+    node_dict = dict(zip(df_node_alias['node_alias'],df_node_alias['id']))
+    node_name_list = df_node_alias['node_alias'].values.tolist()  #获取主机名list 都是大写的
+    ping_node_name_id = -1
+    for node_name in node_name_list:
+        if node_name.lower() in alarm_content:
+            print("node_name:"+ node_name.lower())
+            ping_node_name_id = node_dict[node_name]
+            print ("fixed node_name id:"+ ping_node_name_id)
+            break
+
+    return ping_node_name_id
+
+#在node_dict中 找到id对应node_alias 也就是主机名
+def find_node_alias_value(node_key,node_dict):
+    node_value = node_dict[node_key]
+    return node_value.lower()        #全部转换为小写
+
+#查找三十分钟内是否有主机告警
+def find_close_alarm(time_list,time):
+    new_time_list = map(lambda x: datetime.strptime(x, '%Y%m%d %H:%M:%S'), time_list)
+    new_time  = datetime.strptime(time,  '%Y%m%d %H:%M:%S')
+    flag = 0
+    for i in new_time_list:
+        if new_time > i:
+            time_delta = (new_time - i).seconds #计算时间差
+        else:
+            time_delta = (i - new_time).seconds
+        if  time_delta < 1800:   #30分钟之内
+            flag = 1
+        break
+    return  flag
+
+#获得matlab需要画图用的数据
+def generate_subplot_data(predict_data, subplot_data_dir):
+    if not os.path.exists(subplot_data_dir):
+        os.makedirs(subplot_data_dir)
+    data = pd.read_csv(predict_data, sep=',',dtype=str)
+    for hostname,group in data.groupby('hostname'):
+        subplot_data_file = os.path.join(subplot_data_dir,hostname+'.csv')
+        group.drop(['hostname'], axis=1, inplace=True)
+        group.to_csv(subplot_data_file, sep=',', index=False, header=False)
+######################################################################################
 
 
 ###jhljx

@@ -20,16 +20,12 @@ host_alarm_dir = os.path.join(base_dir,"raw_data","cffex-host-alarm")
 def call_data_preprocessing_func(flag=False):
     if(flag):
         alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed.csv')
-
         deleted_alarm_processed_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_deleted.csv')  #删除所有
         fixed_alarm_data_file =  os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_fixed.csv')
         final_alarm_data_file =  os.path.join(alarm_data_dir, 'cffex-host-alarm-processed_final.csv')
         raw_alarm_processed_file =  os.path.join(origin_alarm_data_dir, 'cffex-host-alarm-processed.csv')
-
         alarm_origin_file = os.path.join(raw_data_dir, 'cffex-host-alarm', 'cffex-host-alarm-processed.csv')
-
         node_alias_file = os.path.join(alarm_data_dir, 'cffex-host-alarm-node-alias.csv')
-
         alarm_out_file = os.path.join(predict_data_dir, "alarm_data.csv")
         predict_data = os.path.join(predict_data_dir, 'predict_data.csv')
         alarm_out_file_fixed = os.path.join(predict_data_dir, "alarm_fixed_data.csv")  #修改对应主机
@@ -52,9 +48,9 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.process_raw_data(origin_data_dir, output_cffex_info_dir)
         # # 提取output_data中的cffex-host-info数据的时间、最大值、最小值数据，将每个主机按cpu、磁盘、mem等部件存入plot_data中
         # #plot data实际上是用来生成分类器所需要的特征
-        # data_preprocessing.generate_plot_data(output_cffex_info_dir, new_plot_data_dir)
-        #
-        # # plot_data中部分数据存在23点数据缺失问题，对数据进行线性插值处理
+        #data_preprocessing.generate_plot_data(output_cffex_info_dir, new_plot_data_dir)
+
+        #plot_data中部分数据存在23点数据缺失问题，对数据进行线性插值处理
         # data_preprocessing.insert_missing_data(new_plot_data_dir, new_plot_data_dir) #测试一下
 
         #删除告警数据中的ping数据
@@ -67,16 +63,7 @@ def call_data_preprocessing_func(flag=False):
         # 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
         # data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, multicalss_alarm_out_file)
 
-        #处理原始告警数据
-        #data_preprocessing.process_alarm_data(os.path.join(raw_data_dir, 'cffex-host-alarm'), alarm_data_dir)
-        # 处理原始数据，将json格式的原始log文件数据解析为dataframe格式的csv文件数据
-        #data_preprocessing.process_raw_data(origin_data_dir, output_cffex_info_dir)
-        # 提取output_data中的cffex-host-info数据的时间、最大值、最小值数据，将每个主机按cpu、磁盘、mem等部件存入plot_data中
-        #plot data实际上是用来生成分类器所需要的特征
-        #data_preprocessing.generate_plot_data(output_cffex_info_dir, plot_data_dir)
 
-        # plot_data中部分数据存在23点数据缺失问题，对数据进行线性插值处理
-        #data_preprocessing.insert_missing_data(plot_data_dir, plot_data_dir) #测试一下
         # 将告警数据只存储主机名、时间和事件（bool标记）
         # data_preprocessing.generate_alarm_data(final_alarm_data_file, node_alias_file, new_alarm_out_file)
         #
