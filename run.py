@@ -69,7 +69,7 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
+        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
         # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
         # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
         # data_preprocessing.fix_inf(new_merged_alertgroup_file)
@@ -98,9 +98,6 @@ def call_feature_extraction_func(flag=False):
         cpu_only_file = os.path.join(predict_data_dir, "cpu_only_data.csv")
         disk_only_file = os.path.join(predict_data_dir, "disk_only_data.csv")
         mem_only_file = os.path.join(predict_data_dir, "mem_only_data.csv")
-
-        if not os.path.exists(cluster_data_dir):
-            os.makedirs(cluster_data_dir)
         cluster_history_data_file = os.path.join(cluster_data_dir, "cluster_history_data.csv")
         alarm_file_cluster = os.path.join(cluster_data_dir, "cluster_alarm_data.csv")
         cluster_series_data_file= os.path.join(cluster_data_dir, "cluster_series_data.csv")
@@ -110,6 +107,8 @@ def call_feature_extraction_func(flag=False):
         correlation_data_file = os.path.join(multiclass_data_dir, "correlation_data.csv")
         new_alarm_file = os.path.join(new_predict_data_dir, "new_alarm_data.csv")
         new_merged_file = os.path.join(new_predict_data_dir, "new_merged_data.csv")
+        alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
+        cluster_series_data = os.path.join(cluster_data_dir, "cluster_series_data.csv")
 
         new_merged_alertgroup_file = os.path.join(new_predict_data_dir, "new_merged_alertgroup_data.csv")
         traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
@@ -129,8 +128,8 @@ def call_feature_extraction_func(flag=False):
         #保留部分特征
         # feature_extraction.delete_feature(new_merged_alertgroup_file,traing_data_file)
 
-        feature_extraction.generate_history_label(traing_data_file)
-
+        # feature_extraction.generate_history_label(traing_data_file)
+        feature_extraction.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
         #生成聚类所用的特征历史数据
         # feature_extraction.generate_cluster_history_data(plot_data_dir,cluster_history_data_file)
 

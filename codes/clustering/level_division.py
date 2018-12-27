@@ -55,6 +55,7 @@ def child(clust):
         # return [clust.level]
     return child(clust.left) + child(clust.right)
 
+#几种距离度量方法
 def Pearson(s1,s2):
     s1_mean = np.mean(s1)
     s2_mean = np.mean(s2)
@@ -96,7 +97,6 @@ def spearman_corr(x,y):
 
 def DOT(s1,s2):
     return np.dot(s1,s2)
-
 
 def DTW(s1, s2):
     r, c = len(s1), len(s2)

@@ -5,8 +5,13 @@ from codes.preprocessing.data_preprocessing import common_disk_list
 
 ######################################################################################
 #Author: 王靖文
+#特征提取流程
 
+#（1）提取特征，将kpi指标数据整合成为特征数据,将每个主机的cpu、六个公共磁盘、内存的最大值、最小值作为特征，整合到同一个dataframe中
+#input：new_plot_data_dir
+#output：new_predict_data
 def generate_feature_by_hostname(origin_dir, out_file):
+    col_list = ['hostname', 'archour','cpu_avg','cpu_max','cpu_min','mem_avg', 'mem_max', 'mem_min']
     f_list = os.listdir(origin_dir)    #csv list
     host_name_file_dict = {}
     for file_name in f_list:
@@ -16,14 +21,7 @@ def generate_feature_by_hostname(origin_dir, out_file):
         host_name_file_dict[host_name].append(file_name)
     #这里得到的主机数量是201，与原有告警文件中主机总数261差了60台
     host_name_list = host_name_file_dict.keys()
-    df_all = pd.DataFrame(columns=['hostname', 'archour',
-                                   'cpu_avg','cpu_maxt','cpu_max','cpu_mint', 'cpu_min',     #创建空dataframe 存放merge之后的数据
-                                   'boot_avg','boot_maxt','boot_max', 'boot_mint','boot_min',
-                                  'home_avg','home_maxt', 'home_max','home_mint', 'home_min',
-                                   'monitor_avg','monitor_maxt', 'monitor_max','monitor_mint', 'monitor_min',
-                                   'rt_avg','rt_maxt','rt_max','rt_mint', 'rt_min',
-                                   'tmp_avg','tmp_maxt', 'tmp_max', 'tmp_mint','tmp_min',
-                                    'mem_avg','mem_maxt', 'mem_max','mem_mint', 'mem_min'])
+    df_all = pd.DataFrame(columns=col_list)
     print('host number = ', len(host_name_list))
     for h_name in host_name_list:            #遍历每个主机对应的文件list
         file_list = host_name_file_dict[h_name]
@@ -51,67 +49,9 @@ def generate_feature_by_hostname(origin_dir, out_file):
     print(df_all.shape)  #643560*16
     print('done')
 
-def get_host_name(file_name):
-    f_name = os.path.splitext(file_name)[0].split('_')
-    ele = ["cpu", "disk", "mem"]
-    host_name_list = []
-    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
-        if e in f_name:
-            h = f_name.index(e)
-    for a in range(0, h):
-        host_name_list.append(f_name[a])
-    host_name = '_'.join(host_name_list)
-    return host_name
-
-def get_prefix(file):
-    f_name_list = os.path.splitext(file)[0].split('_')   #根据后缀筛选需要的文件名
-    return f_name_list[-1]            #返回前缀
-
-def file_filter(f_list):
-    disk_file_list = common_disk_list.copy()
-    disk_file_list.extend(['cpu','mem'])
-    saved_file_list = []
-    for f in f_list:
-        flag = 0
-        file_name = os.path.splitext(f)[0]
-        for item in disk_file_list:
-            if file_name.endswith(item):
-                flag = 1
-        if flag == 1 and f.find('cffex')==-1 :        #文件名符合筛选条件，防止找到cffex_home这样的文件
-            saved_file_list.append(f)
-    assert len(saved_file_list) == 7
-    return saved_file_list
-
-def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
-    feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
-    # feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
-    # loop = True
-    # chunkSize = 1000
-    # chunks = []
-    # index = 0
-    # while loop:
-    #     try:
-    #         print(index)
-    #         chunk = feature_data_df.get_chunk(chunkSize)
-    #         chunks.append(chunk)
-    #         index += 1
-    #
-    #     except StopIteration:
-    #         loop = False
-    #         print("Iteration is stopped.")
-    # print('开始合并')
-    # feature_data_df = pd.concat(chunks, ignore_index=True)
-
-    print(feature_data_df.shape)
-    alarm_data_df = pd.read_csv(alarm_file, sep=',', dtype=str)  #13614*3
-    print(alarm_data_df.shape)
-    #通过主机名和时间 左连接将告警事件match到对应的特征数据中
-    merged_df = pd.merge(feature_data_df, alarm_data_df, on=['hostname','archour'], how="left",left_index= False,right_index= False).fillna(0)
-    #merge之后，有7997条告警数据，639199条非告警数据
-    merged_df.to_csv(merged_data_file, sep=',', index=False)
-    print(merged_df[merged_df['event']==0].shape)
-    print(merged_df[merged_df['event'] == '1'].shape)
-
+#（2）提取前两个小时的历史kpi数据整合到特征数据中
+#input：new_plot_data_dir
+#output：new_history_data_file
 def generate_history_feature(origin_dir, history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
     host_name_file_dict = {}
@@ -225,7 +165,56 @@ def generate_history_feature(origin_dir, history_data_file):
     print(df_all.shape)  #643560*44
     print('done')
 
-#去掉部分特征，只保留一种特征或两种特征
+#（3)# 将特征数据与告警数据match到一起，按照主机名和时间 左连接将告警事件match到对应的特征数据中
+#input:new_history_data_file,new_alarm_file
+#output: new_merged_file
+def generate_data_matrix_and_vector(feature_file,alarm_file,merged_data_file):
+    feature_data_df = pd.read_csv(feature_file, sep=',',dtype=str) #643560*16
+    # feature_data_df = pd.read_csv(feature_file, sep=',', engine='python', iterator=True)
+    # loop = True
+    # chunkSize = 1000
+    # chunks = []
+    # index = 0
+    # while loop:
+    #     try:
+    #         print(index)
+    #         chunk = feature_data_df.get_chunk(chunkSize)
+    #         chunks.append(chunk)
+    #         index += 1
+    #
+    #     except StopIteration:
+    #         loop = False
+    #         print("Iteration is stopped.")
+    # print('开始合并')
+    # feature_data_df = pd.concat(chunks, ignore_index=True)
+
+    print(feature_data_df.shape)
+    alarm_data_df = pd.read_csv(alarm_file, sep=',', dtype=str)  #13614*3
+    print(alarm_data_df.shape)
+    #通过主机名和时间 左连接将告警事件match到对应的特征数据中
+    merged_df = pd.merge(feature_data_df, alarm_data_df, on=['hostname','archour'], how="left",left_index= False,right_index= False).fillna(0)
+    #merge之后，有7997条告警数据，639199条非告警数据
+    merged_df.to_csv(merged_data_file, sep=',', index=False)
+    print(merged_df[merged_df['event']==0].shape)
+    print(merged_df[merged_df['event'] == '1'].shape)
+
+#（4）特征数据中添加主机对应的业务类别，即alertgroup
+#input：alertgroup_file,new_merged_file
+#output:new_merged_alertgroup_file
+def get_alertgroup_by_hostname(alertgroup_file, merged_data_file,merged_alertgroup_data_file):
+    data = pd.read_csv(merged_data_file, sep=',', dtype=str)
+    df = pd.read_csv(alertgroup_file, sep=',', dtype=str)
+    df['alertgroup'] = df['alertgroup'].map(lambda x: x[:3])
+    df.drop_duplicates(inplace=True)
+    print(df)  #hostname 和 alertgroup的对应表
+    merged_df = pd.merge(data,df, on=['hostname'], how="left", left_index=False,
+                         right_index=False)
+    print(merged_df)
+    merged_df.to_csv(merged_alertgroup_data_file,sep=',',index=False)
+
+#(5)根据数据选取情况去掉部分特征，生成训练数据
+#input：new_merged_alertgroup_file
+#output：traing_data_file
 def delete_feature(origin_file, output_file):
     data = pd.read_csv(origin_file, sep=',', dtype = str)
     print(data)
@@ -264,7 +253,11 @@ def delete_feature(origin_file, output_file):
     print(data)
     data.to_csv(output_file,sep=',',index=None)
 
-#生成各个特征的六小时内数据
+######################################################################
+#聚类数据处理流程
+#（1）生成聚类所用的各个特征的六小时内kpi数据
+#input：plot_data_dir
+#output：cluster_history_data_file
 def generate_cluster_history_data(origin_dir, cluster_history_data_file):
     f_list = os.listdir(origin_dir)  # csv list
     host_name_file_dict = {}
@@ -378,7 +371,9 @@ def generate_cluster_history_data(origin_dir, cluster_history_data_file):
     print(df_all.shape)  #643560*44
     print('done')
 
-#生成聚类所用的序列集合，每个集合元素为特征六小时的特征数据及告警等级和告警类型
+#（2）生成聚类所用的序列集合，每个集合元素为特征六小时的特征数据及告警等级和告警类型
+#input：cluster_history_data_file，multicalss_alarm_out_file
+#output：cluster_merge_data_file
 def generate_cluster_data(cluster_history_data_file,alarm_file,cluster_merge_data_file):
     feature_data = pd.read_csv(cluster_history_data_file, sep=',', dtype=str)
     print(feature_data.shape)
@@ -392,6 +387,57 @@ def generate_cluster_data(cluster_history_data_file,alarm_file,cluster_merge_dat
     # print(merged_df['content'].value)
     # print(merged_df[merged_df['event'] == '1'].shape)
 
+#######################################################################
+#辅助函数
+
+#提取文件名中的主机名
+def get_host_name(file_name):
+    f_name = os.path.splitext(file_name)[0].split('_')
+    ele = ["cpu", "disk", "mem"]
+    host_name_list = []
+    for e in ele:  # 判断是cpu、disk 还是mem文件  根据索引获取主机名
+        if e in f_name:
+            h = f_name.index(e)
+    for a in range(0, h):
+        host_name_list.append(f_name[a])
+    host_name = '_'.join(host_name_list)
+    return host_name
+
+#根据后缀筛选需要的文件名，返回作为前缀
+def get_prefix(file):
+    f_name_list = os.path.splitext(file)[0].split('_')
+    return f_name_list[-1]
+
+#筛选各个主机的公共磁盘
+def file_filter(f_list):
+    disk_file_list = common_disk_list.copy()
+    disk_file_list.extend(['cpu','mem'])
+    saved_file_list = []
+    for f in f_list:
+        flag = 0
+        file_name = os.path.splitext(f)[0]
+        for item in disk_file_list:
+            if file_name.endswith(item):
+                flag = 1
+        if flag == 1 and f.find('cffex')==-1 :        #文件名符合筛选条件，防止找到cffex_home这样的文件
+            saved_file_list.append(f)
+    assert len(saved_file_list) == 7
+    return saved_file_list
+
+#转换时间格式
+def trans_date(date_str):
+    #2018-01-24 02:00:00
+    hour = int(date_str[11:13])
+    hour+=1
+    if hour<=9 :
+        str_hour = '0'+str(hour)
+    else:
+        str_hour = str(hour)
+    new_str = date_str[:11] +str_hour+ date_str[13:]
+    print(new_str)
+    return new_str
+
+#根据特征数据生成每个主机前一时刻的告警发生情况数据
 def generate_history_label(merged_data_file):
     df = pd.read_csv(merged_data_file,sep=',', dtype=str)
     new_df = df[['hostname','archour','event']]
@@ -406,19 +452,5 @@ def generate_history_label(merged_data_file):
     print(merged_df['pre_event'].value_counts())
     print(merged_df['event'].value_counts())
     print(df['event'].value_counts())
-
-def trans_date(date_str):
-    #2018-01-24 02:00:00
-    hour = int(date_str[11:13])
-    hour+=1
-    if hour<=9 :
-        str_hour = '0'+str(hour)
-    else:
-        str_hour = str(hour)
-    new_str = date_str[:11] +str_hour+ date_str[13:]
-    print(new_str)
-    return new_str
-
-
 
 
