@@ -74,7 +74,8 @@ def call_data_preprocessing_func(flag=False):
         # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
         # data_preprocessing.fix_inf(new_merged_alertgroup_file)
 
-        data_preprocessing.delete_disk_files(output_cffex_info_dir,cpu_mem_info_dir)
+        data_preprocessing.delete_disk_files(output_cffex_info_dir,cpu_mem_info_dir,new_output_dir)
+        data_preprocessing.generate_last_alarm(multicalss_alarm_out_file,new_output_dir)
 
 
 #调用特征提取的函数
@@ -177,8 +178,8 @@ def call_predict_model_func(flag=False):
         # print('only disk')
         # predict_model.classifiers_for_prediction(disk_only_file, model_save_file,history_predict_proba_file)
         # print('only mem')
-        # predict_model.classifiers_for_prediction(mem_only_file, model_save_file,history_predict_proba_file)
-        predict_model.classifiers_for_prediction(traing_data_file, model_save_file, history_predict_proba_file,p_result_file,ts_result_file)
+        predict_model.classifiers_for_prediction(traing_data_file, model_save_file,history_predict_proba_file,roc_plot_data_dir)
+        # predict_model.classifiers_for_prediction(traing_data_file, model_save_file, history_predict_proba_file,p_result_file,ts_result_file)
 
 
 def call_level_division_func(flag=False):
@@ -223,10 +224,10 @@ def alarm_prediction_model():
     pass
 
 if __name__ == '__main__':
-    call_data_preprocessing_func()
+    call_data_preprocessing_func(flag=True)
     call_feature_extraction_func()
     # print('最大最小时间差、平均值、alarm_count')
-    call_predict_model_func(flag=True)
+    call_predict_model_func()
 
     call_anomaly_detection_func()
     call_level_division_func()

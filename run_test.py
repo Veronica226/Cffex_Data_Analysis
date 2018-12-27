@@ -20,10 +20,10 @@ from sklearn.metrics import r2_score
 from math import sqrt
 from datetime import datetime,timedelta
 from settings import output_dir
-from sklearn import ensemble
+from sklearn import ensemble, metrics
 from sklearn import svm
 from sklearn import neighbors
-from settings import output_dir,alarm_data_dir,new_predict_data_dir,cluster_data_dir
+from settings import output_dir,alarm_data_dir,new_predict_data_dir,cluster_data_dir,new_output_dir
 # 预测调用函数样例
 def run_test_predict(out_file_name):
 	predict_result = pd.DataFrame()
@@ -52,7 +52,7 @@ def run_test_predict(out_file_name):
 	]
 
 	# 时间序列预测部分
-	csv_dir = os.path.join(output_dir,'cffex-host-info-cpu-mem')
+	csv_dir = os.path.join(new_output_dir,'cffex-host-info-cpu-mem')
 	dateparse = lambda dates: pd.datetime.strptime(dates,'%Y%m%d%H')
 	f_list = os.listdir(csv_dir)
 	for i in range(len(f_list)):
@@ -256,13 +256,42 @@ def run_tests():
                                            },ignore_index = True)
 		predict_result.to_csv('output_data\\TS_predict_result_RMSE.csv', index = 0, encoding = 'UTF-8')
 
+def cal_predict_acc(real_data_file,predicted_data_file):
+	real_df = pd.read_csv(real_data_file, sep=',', dtype=str)
+	pre_df = pd.read_csv(predicted_data_file, sep=',', dtype=str)
+	pre_df.drop('alertgroup',axis=1,inplace=True)
+	pre_df.drop_duplicates(inplace=True)
+	print(pre_df)
+	real_cpu_avg = real_df['cpu_avg']
+	real_cpu_max = real_df['cpu_max']
+	real_cpu_min = real_df['cpu_min']
+	pre_cpu_avg = pre_df['cpu_avg']
+	pre_cpu_max = pre_df['cpu_max']
+	pre_cpu_min = pre_df['cpu_min']
+	real_mem_avg = real_df['mem_avg']
+	real_mem_max = real_df['mem_max']
+	real_mem_min = real_df['mem_min']
+	pre_mem_avg = pre_df['mem_avg']
+	pre_mem_max = pre_df['mem_max']
+	pre_mem_min = pre_df['mem_min']
+	print('cpu_avg:',((metrics.mean_squared_error(real_cpu_avg, pre_cpu_avg))))
+	print('cpu_min:',((metrics.mean_squared_error(real_cpu_min, pre_cpu_min))))
+	print('cpu_max:',((metrics.mean_squared_error(real_cpu_max, pre_cpu_max))))
+	print('mem_avg:',((metrics.mean_squared_error(real_mem_avg, pre_mem_avg))))
+	print('mem_min:',((metrics.mean_squared_error(real_mem_min, pre_mem_min))))
+	print('mem_max:',((metrics.mean_squared_error(real_mem_max, pre_mem_max))))
+
 if __name__ == '__main__':
     # run_tests()
 
-   model_save_file = os.path.join(output_dir,'classifier_model.csv')
-   out_file_name = os.path.join(output_dir,'TS_predict_result.csv')
-   predict_result_file = os.path.join(output_dir,'alarm_prediction.csv')
-   final_result_file = os.path.join(output_dir,'final_prediction_result.csv')
+   model_save_file = os.path.join(new_output_dir,'classifier_model.csv')
+   out_file_name = os.path.join(new_output_dir,'061121_TS_predict_result.csv')
+   predict_result_file = os.path.join(new_output_dir,'061121_alarm_prediction.csv')
+   final_result_file = os.path.join(new_output_dir,'061121_final_prediction_result.csv')
+   real_kpi_data = os.path.join(new_output_dir,'061121_data.csv')
+
    run_test_predict(out_file_name)   #预测时间序列
    test_classifier_model(out_file_name,predict_result_file)  #分类器预测
    test_kpi_level_model(predict_result_file,final_result_file) #告警级别划分
+
+   cal_predict_acc(real_kpi_data,out_file_name)

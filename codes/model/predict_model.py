@@ -524,10 +524,11 @@ def get_time_series_data(ts_result_file):
     ts_d = ts_d.convert_objects(convert_numeric=True)
     return host_d,ts_d
 
-def classifiers_for_prediction(data_file,model_save_file,result_file):
+def classifiers_for_prediction(data_file,model_save_file,result_file,roc_plot_data_dir):
     model_save = {}
     test_classifiers_list = [ 'RF',
                              'GBDT',
+                              'LR',
                                'KNN',
                                'DT']
     classifiers = {'NB': naive_bayes_classifier,
@@ -557,6 +558,8 @@ def classifiers_for_prediction(data_file,model_save_file,result_file):
             # train_y = pd.DataFrame(y_resampled)
             # train_x, test_x, train_y, test_y = read_data(data_file,split=True)
             all_df = pd.DataFrame(columns=['classifier','hostname', 'predict_event'])
+            roc_df = pd.DataFrame(columns=['real'])
+            roc_df['real'] = test_y
 
             for classifier in test_classifiers_list:
                 print('******************* %s ********************' % classifier)
@@ -564,12 +567,14 @@ def classifiers_for_prediction(data_file,model_save_file,result_file):
                 model = classifiers[classifier](train_x, train_y)
                 print('training took %fs!' % (time.time() - start_time))
 
-                predict = model.predict(test_x)
-                print((predict.sum())/len(predict))
+                # predict = model.predict(test_x)
+
+                # print((predict.sum())/len(predict))
                 # predict_proba = model.predict(test_x)
-                # predict_proba = model.predict_proba(test_x)[:,1]
-                if model_save_file != None:
-                    model_save[alertgroup][classifier] = model
+                predict_proba = model.predict_proba(test_x)[:,1]
+                roc_df[classifier] = predict_proba
+                # if model_save_file != None:
+                #     model_save[alertgroup][classifier] = model
 
 
                 #画图
@@ -605,10 +610,14 @@ def classifiers_for_prediction(data_file,model_save_file,result_file):
                 # recall_list.append(recall)
                 # result_list.append([alertgroup,classifier,precision,recall,fbetascore,accuracy,model_score])
 
-            if model_save_file != None:
-                pickle.dump(model_save, open(model_save_file, 'wb'))
+            # if model_save_file != None:
+            #     pickle.dump(model_save, open(model_save_file, 'wb'))
 
-            all_df.to_csv(result_file,sep=',',index=False)
+            # all_df.to_csv(result_file,sep=',',index=False)
+
+            print(roc_df)
+            roc_df_file = os.path.join(roc_plot_data_dir, alertgroup + '_roc_data_proba.csv')
+            roc_df.to_csv(roc_df_file,sep=',',index=False)
     # result_df = pd.DataFrame(result_list,
     #                          columns=['alertgroup','classifier','precision','recall','fbetascore','accuracy','model_score'])
     # print(result_df)
