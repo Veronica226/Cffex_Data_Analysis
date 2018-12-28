@@ -69,13 +69,14 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
+        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
         # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
         # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
         # data_preprocessing.fix_inf(new_merged_alertgroup_file)
 
         data_preprocessing.delete_disk_files(output_cffex_info_dir,cpu_mem_info_dir,new_output_dir)
         data_preprocessing.generate_last_alarm(multicalss_alarm_out_file,new_output_dir)
+        # data_preprocessing.change_data(cluster_series_data)
 
 
 #调用特征提取的函数

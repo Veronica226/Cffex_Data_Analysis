@@ -26,7 +26,8 @@ from imblearn.combine import SMOTEENN
 import pickle
 import pandas as pd
 # from xgboost import *
-
+import mlxtend.classifier
+from mlxtend.classifier import StackingClassifier
 ######################################################################################
 #Author: 王靖文
 
@@ -55,8 +56,8 @@ def knn_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:'+ str(acc)+'  f0.5score:'+str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:'+ str(acc)+'  f2score:'+str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -88,8 +89,8 @@ def random_forest_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -188,8 +189,8 @@ def decision_tree_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -236,8 +237,8 @@ def gradient_boosting_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -527,13 +528,12 @@ def get_time_series_data(ts_result_file):
     ts_d = ts_d.convert_objects(convert_numeric=True)
     return host_d,ts_d
 
-<<<<<<< HEAD
+
 def classifiers_for_prediction(data_file,model_save_file,result_file,roc_plot_data_dir):
-=======
+
 
 #训练分类模型
-def classifiers_for_prediction(data_file,model_save_file,result_file):
->>>>>>> 1357b7d01031c96e0042f2197ce5e416f4d6a3f6
+
     model_save = {}
     test_classifiers_list = [ 'RF',
                              'GBDT',
@@ -652,3 +652,78 @@ def test_classifier_for_prediction(data_file,alertgroup_name,classifier):
             model = classifiers[classifier](train_x, train_y)
 
     return model
+
+
+def stacking(data_file,alertgroup_name,classifier_list):
+    classifiers = {'NB': naive_bayes_classifier,
+                   'KNN': knn_classifier,
+                   'LR': logistic_regression_classifier,
+                   'RF': random_forest_classifier,
+                   'DT': decision_tree_classifier,
+                   'SVM': svm_classifier,
+                   'SVMCV': svm_cross_validation,
+                   'GBDT': gradient_boosting_classifier
+                   # 'XGB':xgboost_classifier
+                   }
+    all_data = pd.read_csv(data_file, sep=',', dtype=str)
+    for alertgroup, group in all_data.groupby('alertgroup'):
+        if alertgroup == alertgroup_name:
+            new_df = pd.DataFrame()
+            train_x, test_x, train_y, test_y = get_data(group, split=True)
+            for classifier in classifier_list:
+                model = classifiers[classifier](train_x, train_y)
+                classifier_predict = model.predict(test_x)
+                new_df[classifier] = classifier_predict
+
+            new_df['label'] = test_y
+
+            train_stack_x = new_df.drop('label',axis=1)
+            train_stack_y = new_df.label
+            stack_model = logistic_regression_classifier(train_stack_x,train_stack_y)
+
+            return stack_model
+
+
+def classifer_stacking(data_file,alertgroup_name,classifier_list):
+    # classifiers = {'NB': naive_bayes_classifier,
+    #                'KNN': knn_classifier,
+    #                'LR': logistic_regression_classifier,
+    #                'RF': random_forest_classifier,
+    #                'DT': decision_tree_classifier,
+    #                'SVM': svm_classifier,
+    #                'SVMCV': svm_cross_validation,
+    #                'GBDT': gradient_boosting_classifier
+    #                # 'XGB':xgboost_classifier
+    #                }
+    classifiers = {'KNN':KNeighborsClassifier(),
+                   # n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric_params=None, n_jobs=1),
+                   # 'LR': LogisticRegression(),
+                   'RF':  RandomForestClassifier(),
+                   # n_estimators=60,max_depth=13,min_samples_split=120,min_samples_leaf=20,random_state=10
+                   'DT': tree.DecisionTreeClassifier(),
+                   # criterion='gini',splitter=random,max_features=None,max_depth=13,min_samples_leaf=2
+                   'GBDT': GradientBoostingClassifier()
+                       # loss='ls', learning_rate=0.1, n_estimators=100, subsample=1.0, min_samples_split=2, min_samples_leaf=1,max_depth=3,verbose=0,presort='auto')
+                   # 'XGB':xgboost_classifier
+                   }
+    all_data = pd.read_csv(data_file, sep=',', dtype=str)
+    for alertgroup, group in all_data.groupby('alertgroup'):
+        if alertgroup == alertgroup_name:
+            train_x, test_x, train_y, test_y = get_data(group, split=True)
+            classifiers_list = [classifiers[cl] for cl in classifier_list]
+            stack_model = StackingClassifier(classifiers = classifiers_list,use_probas=True,
+                                             average_probas=True,meta_classifier=classifiers['RF'])
+
+
+            stack_model.fit(train_x,train_y)
+            predict = stack_model.predict(test_x)
+            precision = metrics.precision_score(test_y, predict)
+            recall = metrics.recall_score(test_y, predict)
+            fbetascore = fbeta_score(test_y, predict, 0.5)
+            accuracy = metrics.accuracy_score(test_y, predict)
+            print(alertgroup_name)
+            print('precision: %.6f' % (100 *precision))
+            print('recall: %.6f' % (100 * recall))
+            print('f0.5score: %.6f' % (100 * fbetascore))
+            print('accuracy: %.6f%%' % (100 * accuracy))
+            return stack_model

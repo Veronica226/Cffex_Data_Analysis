@@ -66,7 +66,7 @@ def run_test_predict(out_file_name):
 			filename_split.pop()
 			filename = '_'
 			filename = filename.join(filename_split)
-			print(filename +' done')
+			# print(filename +' done')
 			# cpu数据准备
 			cpu_data = pd.read_csv(os.path.join(csv_dir,f_list[i]),encoding='UTF-8',parse_dates=['archour'],index_col='archour',date_parser=dateparse)
 			# mem数据准备
@@ -93,7 +93,7 @@ def run_test_predict(out_file_name):
 	predict_result.to_csv(out_file_name, index = 0, encoding = 'UTF-8')
 
 # 分类调用函数样例
-def test_classifier_model(out_file_name,predict_result_file):
+def test_classifiers_model(out_file_name,predict_result_file):
 	traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
 	alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
 	data_preprocessing.get_alertgroup_by_hostname(alertgroup_file, out_file_name)
@@ -122,10 +122,7 @@ def test_classifier_model(out_file_name,predict_result_file):
 				'mem_avg_2',
 				'mem_max_2',
 				'mem_min_2']
-			test_classifiers_list = ['RF',
-									 'GBDT',
-									 'KNN',
-									 'DT']
+			test_classifiers_list = ['RF','KNN','DT','GBDT']
 			data = group[col_list]
 			# data.replace(-np.inf, np.nan)
 			# data.fillna(0)
@@ -146,6 +143,53 @@ def test_classifier_model(out_file_name,predict_result_file):
 
 		all_df.to_csv(predict_result_file,sep=',',index=False)
 
+#调用stack样例
+def test_classifier_model(out_file_name,predict_result_file):
+	traing_data_file = os.path.join(new_predict_data_dir, "training_data.csv")
+	alertgroup_file = os.path.join(alarm_data_dir, 'alertgroup.csv')
+	data_preprocessing.get_alertgroup_by_hostname(alertgroup_file, out_file_name)
+	data = pd.read_csv(out_file_name, sep=',', dtype=str)
+	all_df = pd.DataFrame(columns=['alertgroup','hostname', 'predict_event'])
+
+	for alertgroup,group in data.groupby('alertgroup'):
+		if alertgroup!='Net':
+			print(str(alertgroup)+' start')
+			col_list = [
+				'cpu_avg',
+				'cpu_max',
+				'cpu_min',
+				'mem_avg',
+				'mem_max',
+				'mem_min',
+				'cpu_avg_1',
+				'cpu_max_1',
+				'cpu_min_1',
+				'mem_avg_1',
+				'mem_max_1',
+				'mem_min_1',
+				'cpu_avg_2',
+				'cpu_max_2',
+				'cpu_min_2',
+				'mem_avg_2',
+				'mem_max_2',
+				'mem_min_2']
+			classifiers_list = ['RF','KNN','DT','GBDT']
+			data = group[col_list]
+			# data.replace(-np.inf, np.nan)
+			# data.fillna(0)
+			data = data.convert_objects(convert_numeric=True)
+			model = predict_model.classifer_stacking(traing_data_file,alertgroup,classifiers_list)
+			predict = model.predict(data)
+			new_df = pd.DataFrame(columns=['alertgroup', 'hostname', 'predict_event'])
+			new_df['hostname'] = group['hostname']
+			new_df['predict_event'] = predict
+			new_df['alertgroup'] = alertgroup
+			new_df = new_df.join(data, how='outer')
+			print(new_df['predict_event'].value_counts())
+			all_df = pd.concat([all_df, new_df])
+
+		all_df.to_csv(predict_result_file,sep=',',index=False)
+
 #告警级别判定调用函数样例
 def test_kpi_level_model(predict_result_file,final_result_file):
 	df = pd.read_csv(predict_result_file, sep=',',dtype=str)
@@ -153,7 +197,7 @@ def test_kpi_level_model(predict_result_file,final_result_file):
 	mapping_dict = {'Biz': 0, 'Mon': 1, 'Ora': 2, 'Trd': 3, 'Other': 4}
 	knn_model_list = []
 	knn_model_list = kpi_level_model.test_KNN_model(cluster_data_dir)
-	all_df = pd.DataFrame(columns=['alertgroup', 'classifier', 'hostname', 'predict_event','predict_level'])
+	all_df = pd.DataFrame(columns=['alertgroup', 'hostname', 'predict_event','predict_level'])
 	for alertgroup,group in df.groupby('alertgroup'):
 		column_list = ['cpu_max', 'cpu_min', 'mem_max', 'mem_min', 'cpu_max_1', 'cpu_min_1', 'mem_max_1', 'mem_min_1',
 				   'cpu_max_2', 'cpu_min_2', 'mem_max_2', 'mem_min_2']
@@ -161,7 +205,7 @@ def test_kpi_level_model(predict_result_file,final_result_file):
 		kpi_predict_result = []
 		for i in knn_model_list:
 			kpi_predict_result.append(i.predict(data))
-		print(kpi_predict_result)
+		# print(kpi_predict_result)
 		predict_results = np.zeros(len(group))
 		df_res = pd.DataFrame(columns=['predict_level'])
 		for idx in range(len(group)):
@@ -170,21 +214,21 @@ def test_kpi_level_model(predict_result_file,final_result_file):
 										   np.round(kpi_predict_result[3][idx]), np.round(kpi_predict_result[4][idx])])
 			# print(sample_predict_vec)
 			mode_prediction_res = stats.mode(sample_predict_vec)[0][0]  # 5个模型预测结果的众数
-			print(mode_prediction_res)
+			# print(mode_prediction_res)
 			max_prediction_res = sample_predict_vec[np.argmax(sample_predict_vec)]  # 5个模型预测结果的最大值
-			print(max_prediction_res)
+			# print(max_prediction_res)
 			group_prediction_res = sample_predict_vec[mapping_dict[alertgroup]]  # group_prediction_val <= max_prediction_val， 该条数据对应的业务模型预测的结果
-			print(group_prediction_res)
+			# print(group_prediction_res)
 			if (mode_prediction_res <= 2 and max_prediction_res <= 2):
 				predict_results[idx] = group_prediction_res
 			else:
 				predict_results[idx] = max_prediction_res
 			df_res.loc[idx] = int(predict_results[idx])
 
-		new_df = group[['alertgroup', 'classifier', 'hostname', 'predict_event']].reset_index(drop=True).join(df_res,how = 'outer')
+		new_df = group[['alertgroup', 'hostname', 'predict_event']].reset_index(drop=True).join(df_res,how = 'outer')
 		all_df = pd.concat([all_df, new_df])
 
-	print(all_df)
+	# print(all_df)
 	all_df.to_csv(final_result_file, sep=',', index=False)
 
 def run_tests():
@@ -262,7 +306,7 @@ def cal_predict_acc(real_data_file,predicted_data_file):
 	pre_df = pd.read_csv(predicted_data_file, sep=',', dtype=str)
 	pre_df.drop('alertgroup',axis=1,inplace=True)
 	pre_df.drop_duplicates(inplace=True)
-	print(pre_df)
+	# print(pre_df)
 	real_cpu_avg = real_df['cpu_avg']
 	real_cpu_max = real_df['cpu_max']
 	real_cpu_min = real_df['cpu_min']
@@ -284,12 +328,12 @@ def cal_predict_acc(real_data_file,predicted_data_file):
 
 if __name__ == '__main__':
     # run_tests()
-
+   time = '061119_'
    model_save_file = os.path.join(new_output_dir,'classifier_model.csv')
-   out_file_name = os.path.join(new_output_dir,'061121_TS_predict_result.csv')
-   predict_result_file = os.path.join(new_output_dir,'061121_alarm_prediction.csv')
-   final_result_file = os.path.join(new_output_dir,'061121_final_prediction_result.csv')
-   real_kpi_data = os.path.join(new_output_dir,'061121_data.csv')
+   out_file_name = os.path.join(new_output_dir,time+'TS_predict_result.csv')
+   predict_result_file = os.path.join(new_output_dir,time+'alarm_prediction.csv')
+   final_result_file = os.path.join(new_output_dir,time+'final_prediction_result.csv')
+   real_kpi_data = os.path.join(new_output_dir,time+'data.csv')
 
    run_test_predict(out_file_name)   #预测时间序列
    test_classifier_model(out_file_name,predict_result_file)  #分类器预测

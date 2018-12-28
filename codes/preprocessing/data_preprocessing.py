@@ -409,8 +409,13 @@ def generate_alarm_data(alarm_processed_file,node_alias_file,alarm_out_file):
 
 
 
+def change_data(cluster_series_data_file):
+    df = pd.read_csv(cluster_series_data_file,sep=',',dtype=str)
+    df.drop('alertgroup_y',axis=1,inplace=True)
+    df.drop_duplicates(inplace=True)
 
-
+    df.rename(columns = {'alertgroup_x':'alertgroup'})
+    df.to_csv(cluster_series_data_file,sep=',',index=False,header=False)
 
 
 
@@ -479,9 +484,9 @@ def delete_disk_files(info_file_dir,out_file_dir,new_output_dir):
         file_name = os.path.splitext(file)[0]
         if file_name.endswith('disk') == False:
             df = pd.read_csv(os.path.join(info_file_dir,file), sep=',', dtype=str)
-            last_line = df.iloc[-2:]
+            last_line = df.iloc[-4:-3]
             last_df = pd.concat([last_df, last_line])
-            df.drop([len(df)-2,len(df)-1],inplace=True)
+            df.drop([len(df)-4,len(df)-3,len(df)-2,len(df)-1],inplace=True)
             df.to_csv(os.path.join(out_file_dir,file), sep=',', index=False)
             # shutil.copyfile(os.path.join(info_file_dir,file),os.path.join(out_file_dir,file))
 
@@ -493,13 +498,13 @@ def delete_disk_files(info_file_dir,out_file_dir,new_output_dir):
     new_last_df.rename(columns={'avgvalue_x': 'cpu_avg', 'dataname_x': 'cpu', 'maxtime_x': 'cpu_maxt','maxvalue_x': 'cpu_max', 'mintime_x': 'cpu_mint', 'minvalue_x': 'cpu_min'
             ,'avgvalue_y': 'mem_avg', 'dataname_y': 'mem', 'maxtime_y': 'mem_maxt','maxvalue_y': 'mem_max', 'mintime_y': 'mem_mint', 'minvalue_y': 'mem_min'}, inplace=True)
     #每个主机最后一天的kpi数据
-    new_last_df.to_csv(os.path.join(new_output_dir,'061121_data.csv'), sep=',', index=False)
+    new_last_df.to_csv(os.path.join(new_output_dir,'061119_data.csv'), sep=',', index=False)
 
 def generate_last_alarm(input_file, new_output_dir):
     df = pd.read_csv(input_file, sep=',', dtype=str)
-    new_df = df[df.archour == '2018-06-11 21:00:00']
+    new_df = df[df.archour == '2018-06-11 19:00:00']
     print(new_df)
-    new_df.to_csv(os.path.join(new_output_dir,'061121_alarm.csv'), sep=',', index=False)
+    new_df.to_csv(os.path.join(new_output_dir,'061119_alarm.csv'), sep=',', index=False)
 #######################################################
 #辅助函数
 #日期格式转换
