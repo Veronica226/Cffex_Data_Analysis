@@ -69,7 +69,7 @@ def call_data_preprocessing_func(flag=False):
         #
         # data_preprocessing.genereate_host_event_sets(alarm_origin_file, plot_dir)
         # data_preprocessing.generate_alarm_level_content(alarm_origin_file, os.path.join(raw_data_dir, 'cffex-host-alarm'))
-        data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
+        # data_preprocessing.get_alertgroup_by_hostname(alertgroup_file,cluster_series_data)
         # data_preprocessing.calculate_delta_time(new_merged_alertgroup_file)
         # data_preprocessing.calculate_avg_and_alarmcount(new_merged_alertgroup_file)
         # data_preprocessing.fix_inf(new_merged_alertgroup_file)

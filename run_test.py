@@ -284,12 +284,12 @@ def cal_predict_acc(real_data_file,predicted_data_file):
 
 if __name__ == '__main__':
     # run_tests()
-
+   time='061120_'
    model_save_file = os.path.join(new_output_dir,'classifier_model.csv')
-   out_file_name = os.path.join(new_output_dir,'061121_TS_predict_result.csv')
-   predict_result_file = os.path.join(new_output_dir,'061121_alarm_prediction.csv')
-   final_result_file = os.path.join(new_output_dir,'061121_final_prediction_result.csv')
-   real_kpi_data = os.path.join(new_output_dir,'061121_data.csv')
+   out_file_name = os.path.join(new_output_dir,'061120_TS_predict_result.csv')
+   predict_result_file = os.path.join(new_output_dir,'061120_alarm_prediction.csv')
+   final_result_file = os.path.join(new_output_dir,'061120_final_prediction_result.csv')
+   real_kpi_data = os.path.join(new_output_dir,'061120_data.csv')
 
    run_test_predict(out_file_name)   #预测时间序列
    test_classifier_model(out_file_name,predict_result_file)  #分类器预测

@@ -22,7 +22,7 @@ from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
 from settings import *
 from sklearn.model_selection import KFold
-from imblearn.combine import SMOTEENN
+# from imblearn.combine import SMOTEENN
 import pickle
 import pandas as pd
 # from xgboost import *
@@ -527,13 +527,8 @@ def get_time_series_data(ts_result_file):
     ts_d = ts_d.convert_objects(convert_numeric=True)
     return host_d,ts_d
 
-<<<<<<< HEAD
 def classifiers_for_prediction(data_file,model_save_file,result_file,roc_plot_data_dir):
-=======
 
-#训练分类模型
-def classifiers_for_prediction(data_file,model_save_file,result_file):
->>>>>>> 1357b7d01031c96e0042f2197ce5e416f4d6a3f6
     model_save = {}
     test_classifiers_list = [ 'RF',
                              'GBDT',
