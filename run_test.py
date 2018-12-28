@@ -326,15 +326,64 @@ def cal_predict_acc(real_data_file,predicted_data_file):
 	print('mem_min:',((metrics.mean_squared_error(real_mem_min, pre_mem_min))))
 	print('mem_max:',((metrics.mean_squared_error(real_mem_max, pre_mem_max))))
 
+def delete_disk_files(info_file_dir,out_file_dir,new_output_dir,test_time):
+   if not os.path.exists(out_file_dir):
+       os.makedirs(out_file_dir)
+   f_list = os.listdir(info_file_dir)
+
+   time_str = test_time[0:4]+test_time[5:7]+test_time[8:10]+test_time[11:13]
+   time_pre_str = test_time[5:7]+test_time[8:10]+test_time[11:13]+'_'
+   last_df = pd.DataFrame()
+   for file in f_list:
+        file_name = os.path.splitext(file)[0]
+        if file_name.endswith('disk') == False:
+            df = pd.read_csv(os.path.join(info_file_dir,file), sep=',', dtype=str)
+
+			test_time_index = df[df.archour == time_str].index.tolist()
+			if test_time_index<len(df)-1:
+            	last_line = df.iloc[test_time_index:test_time_index+1]
+            	last_df = pd.concat([last_df, last_line])
+				drop_index_list = [ i for i in range(test_time_index,len(df))]
+            	df.drop(drop_index_list,inplace=True)
+   			else:
+   				last_line = df.iloc[-1:]
+   				df.drop([len(df)-1],inplace=True)
+
+            df.to_csv(os.path.join(out_file_dir,file), sep=',', index=False)
+            # shutil.copyfile(os.path.join(info_file_dir,file),os.path.join(out_file_dir,file))
+
+    # print(last_df)
+   groups = []
+   for dataname,group in last_df.groupby('dataname'):
+        groups.append(group)
+   new_last_df = pd.merge(groups[0],groups[1],on=['archour','hostname'], how="left", left_index=False,right_index=False)
+   new_last_df.rename(columns={'avgvalue_x': 'cpu_avg', 'dataname_x': 'cpu', 'maxtime_x': 'cpu_maxt','maxvalue_x': 'cpu_max', 'mintime_x': 'cpu_mint', 'minvalue_x': 'cpu_min'
+            ,'avgvalue_y': 'mem_avg', 'dataname_y': 'mem', 'maxtime_y': 'mem_maxt','maxvalue_y': 'mem_max', 'mintime_y': 'mem_mint', 'minvalue_y': 'mem_min'}, inplace=True)
+    #每个主机最后一天的kpi数据
+   new_last_df.to_csv(os.path.join(new_output_dir,time_pre_str+'data.csv'), sep=',', index=False)
+
+def generate_last_alarm(input_file, new_output_dir,test_time):
+    df = pd.read_csv(input_file, sep=',', dtype=str)
+    new_df = df[df.archour == test_time]
+    time_pre_str = test_time[5:7] + test_time[8:10] + test_time[11:13] + '_'
+    print(new_df)
+    new_df.to_csv(os.path.join(new_output_dir,time_pre_str+'alarm.csv'), sep=',', index=False)
+
 if __name__ == '__main__':
     # run_tests()
+   test_time = '2018-06-11 19:00:00'
+   time_pre_str = test_time[5:7]+test_time[8:10]+test_time[11:13]+'_'
+   # time = '061119_'
 
-   time = '061119_'
+
    model_save_file = os.path.join(new_output_dir,'classifier_model.csv')
-   out_file_name = os.path.join(new_output_dir,time+'TS_predict_result.csv')
-   predict_result_file = os.path.join(new_output_dir,time+'alarm_prediction.csv')
-   final_result_file = os.path.join(new_output_dir,time+'final_prediction_result.csv')
-   real_kpi_data = os.path.join(new_output_dir,time+'data.csv')
+   out_file_name = os.path.join(new_output_dir,time_pre_str+'TS_predict_result.csv')
+   predict_result_file = os.path.join(new_output_dir,time_pre_str+'alarm_prediction.csv')
+   final_result_file = os.path.join(new_output_dir,time_pre_str+'final_prediction_result.csv')
+   real_kpi_data = os.path.join(new_output_dir,time_pre_str+'data.csv')
+
+   # delete_disk_files()
+   # generate_last_alarm()
 
    run_test_predict(out_file_name)   #预测时间序列
    test_classifier_model(out_file_name,predict_result_file)  #分类器预测
