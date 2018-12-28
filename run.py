@@ -76,6 +76,7 @@ def call_data_preprocessing_func(flag=False):
 
         data_preprocessing.delete_disk_files(output_cffex_info_dir,cpu_mem_info_dir,new_output_dir)
         data_preprocessing.generate_last_alarm(multicalss_alarm_out_file,new_output_dir)
+        # data_preprocessing.change_data(cluster_series_data)
 
 
 #调用特征提取的函数

@@ -22,11 +22,13 @@ from sklearn.model_selection import train_test_split,learning_curve
 from sklearn.externals import joblib
 from settings import *
 from sklearn.model_selection import KFold
+from sklearn.cross_validation import StratifiedKFold
 # from imblearn.combine import SMOTEENN
 import pickle
 import pandas as pd
 # from xgboost import *
-
+import mlxtend.classifier
+from mlxtend.classifier import StackingClassifier
 ######################################################################################
 #Author: 王靖文
 
@@ -55,8 +57,8 @@ def knn_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:'+ str(acc)+'  f0.5score:'+str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:'+ str(acc)+'  f2score:'+str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -88,8 +90,8 @@ def random_forest_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -188,8 +190,8 @@ def decision_tree_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -236,8 +238,8 @@ def gradient_boosting_classifier(train_x, train_y):
         model.fit(train_x, train_y)
         predict = model.predict(test_x)
         acc = metrics.accuracy_score(test_y, predict)
-        fbetascore = fbeta_score(test_y, predict, 0.5)
-        print('acc:' + str(acc) + '  f0.5score:' + str(fbetascore))
+        fbetascore = fbeta_score(test_y, predict, 1)
+        print('acc:' + str(acc) + '  f2score:' + str(fbetascore))
         if fbetascore > max_fs:
             max_fs = fbetascore
             best_model = model
@@ -527,8 +529,8 @@ def get_time_series_data(ts_result_file):
     ts_d = ts_d.convert_objects(convert_numeric=True)
     return host_d,ts_d
 
-def classifiers_for_prediction(data_file,model_save_file,result_file,roc_plot_data_dir):
 
+def classifiers_for_prediction(data_file,model_save_file,result_file,roc_plot_data_dir):
     model_save = {}
     test_classifiers_list = [ 'RF',
                              'GBDT',
@@ -647,3 +649,58 @@ def test_classifier_for_prediction(data_file,alertgroup_name,classifier):
             model = classifiers[classifier](train_x, train_y)
 
     return model
+
+
+def classifer_stacking(data_file,alertgroup_name,classifier_list):
+    classifiers = {'KNN':KNeighborsClassifier(),
+                   # n_neighbors=5, weights='uniform', algorithm='auto', leaf_size=30, p=2, metric_params=None, n_jobs=1),
+                   # 'LR': LogisticRegression(),
+                   'RF':  RandomForestClassifier(),
+                   # n_estimators=60,max_depth=13,min_samples_split=120,min_samples_leaf=20,random_state=10
+                   'DT': tree.DecisionTreeClassifier(),
+                   # criterion='gini',splitter=random,max_features=None,max_depth=13,min_samples_leaf=2
+                   'GBDT': GradientBoostingClassifier()
+                       # loss='ls', learning_rate=0.1, n_estimators=100, subsample=1.0, min_samples_split=2, min_samples_leaf=1,max_depth=3,verbose=0,presort='auto')
+                   # 'XGB':xgboost_classifier
+                   }
+    all_data = pd.read_csv(data_file, sep=',', dtype=str)
+    for alertgroup, group in all_data.groupby('alertgroup'):
+        if alertgroup == alertgroup_name:
+            train_x, test_x, train_y, test_y = get_data(group, split=True)
+            arr_x = train_x.values
+            arr_y = train_y.values
+            max_fs = 0
+            best_model = None
+            stratified_folder = StratifiedKFold(n_folds=3,random_state=0,shuffle=False)
+
+            for train_index,test_index in stratified_folder.split(train_x):
+                train_x = arr_x[train_index]
+                train_y = arr_y[train_index]
+                test_x = arr_x[test_index]
+                test_y = arr_y[test_index]
+                classifiers_list = [classifiers[cl] for cl in classifier_list]
+                stack_model = StackingClassifier(classifiers = classifiers_list,use_probas=True,
+                                                average_probas=True,meta_classifier=classifiers['RF'])
+
+                stack_model.fit(train_x,train_y)
+                predict = stack_model.predict(test_x)
+                fbetascore = fbeta_score(test_y, predict, 1)
+                print(' f2score:' + str(fbetascore))
+                if fbetascore > max_fs:
+                    max_fs = fbetascore
+                    best_model = stack_model
+
+            stack_model = best_model
+            predict = stack_model.predict(test_x)
+            precision = metrics.precision_score(test_y, predict)
+            recall = metrics.recall_score(test_y, predict)
+            fbetascore = fbeta_score(test_y, predict, 0.5)
+            accuracy = metrics.accuracy_score(test_y, predict)
+            print('final performance:')
+            print(alertgroup_name)
+            print('precision: %.6f' % (100 *precision))
+            print('recall: %.6f' % (100 * recall))
+            print('f0.5score: %.6f' % (100 * fbetascore))
+            print('accuracy: %.6f%%' % (100 * accuracy))
+
+            return best_model
